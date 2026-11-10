@@ -38,8 +38,8 @@ public final class MediaManager: ObservableObject {
         }
         MediaRemoteBridge.shared.startStream()
         
-        // 2. Timer sinkronisasi lirik setiap 0.5 detik
-        let lTimer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+        // 2. Timer sinkronisasi lirik setiap 0.25 detik (responsif & akurat saat pergantian potongan frase)
+        let lTimer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.updateActiveLyric()
             }

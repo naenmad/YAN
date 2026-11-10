@@ -107,7 +107,7 @@ public actor LyricsService {
         if let synced = dict["syncedLyrics"] as? String, !synced.isEmpty {
             let lines = parseLRC(synced)
             if !lines.isEmpty {
-                return lines
+                return subdivideLongLines(lines)
             }
         }
         
@@ -121,11 +121,102 @@ public actor LyricsService {
                 LyricLine(time: Double($0.offset) * 4.0, text: $0.element)
             }
             if !lines.isEmpty {
-                return lines
+                return subdivideLongLines(lines)
             }
         }
         
         return nil
+    }
+    
+    // MARK: - Smart Subdivision: Memecah Baris Lirik Panjang Menjadi Frase Ritmik
+    
+    public func subdivideLongLines(_ lines: [LyricLine], maxChars: Int = 28) -> [LyricLine] {
+        guard !lines.isEmpty else { return [] }
+        var result: [LyricLine] = []
+        
+        for i in 0..<lines.count {
+            let current = lines[i]
+            let duration: Double
+            if i + 1 < lines.count {
+                duration = max(0.5, lines[i + 1].time - current.time)
+            } else {
+                duration = 4.5
+            }
+            
+            let chunks = subdivideLine(text: current.text, startTime: current.time, duration: duration, maxChars: maxChars)
+            result.append(contentsOf: chunks)
+        }
+        
+        return result
+    }
+    
+    private func subdivideLine(text: String, startTime: Double, duration: Double, maxChars: Int = 28) -> [LyricLine] {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > maxChars, duration >= 2.5 else {
+            return [LyricLine(time: startTime, text: trimmed)]
+        }
+        
+        let words = trimmed.split(separator: " ").map(String.init)
+        guard words.count >= 2 else {
+            return [LyricLine(time: startTime, text: trimmed)]
+        }
+        
+        // Batasi durasi bernyanyi efektif jika ada jeda instrumental panjang sebelum baris berikutnya
+        let maxSingingDuration = max(3.5, Double(trimmed.count) * 0.25)
+        let effectiveDuration = min(duration, maxSingingDuration)
+        
+        // Berapa jumlah potongan ideal (k)
+        var k = Int(ceil(Double(trimmed.count) / Double(maxChars)))
+        // Pastikan setiap potongan punya minimal durasi 1.4 detik agar nyaman dibaca
+        k = min(k, max(1, Int(floor(effectiveDuration / 1.4))))
+        guard k > 1 else {
+            return [LyricLine(time: startTime, text: trimmed)]
+        }
+        
+        var chunks: [String] = []
+        let targetChars = Double(trimmed.count) / Double(k)
+        var currentWords: [String] = []
+        var currentLength = 0
+        
+        for (i, word) in words.enumerated() {
+            let remainingWords = words.count - i
+            let remainingChunksNeeded = k - chunks.count
+            
+            currentWords.append(word)
+            currentLength += word.count + (currentWords.count > 1 ? 1 : 0)
+            
+            let hasPunctuation = word.hasSuffix(",") || word.hasSuffix(";") || word.hasSuffix("-") || word.hasSuffix("...")
+            let reachedTarget = Double(currentLength) >= targetChars * 0.85
+            let mustSplit = remainingWords <= remainingChunksNeeded
+            
+            if (reachedTarget || hasPunctuation || mustSplit) && chunks.count < k - 1 && !currentWords.isEmpty {
+                chunks.append(currentWords.joined(separator: " "))
+                currentWords = []
+                currentLength = 0
+            }
+        }
+        
+        if !currentWords.isEmpty {
+            chunks.append(currentWords.joined(separator: " "))
+        }
+        
+        let totalChars = max(1, chunks.reduce(0) { $0 + $1.count })
+        var result: [LyricLine] = []
+        var accumulatedChars = 0
+        
+        for (idx, chunk) in chunks.enumerated() {
+            let chunkStartTime: Double
+            if idx == 0 {
+                chunkStartTime = startTime
+            } else {
+                let ratio = Double(accumulatedChars) / Double(totalChars)
+                chunkStartTime = startTime + (ratio * effectiveDuration)
+            }
+            result.append(LyricLine(time: chunkStartTime, text: chunk))
+            accumulatedChars += chunk.count
+        }
+        
+        return result
     }
     
     public func currentLyric(from lines: [LyricLine], at time: TimeInterval) -> String? {

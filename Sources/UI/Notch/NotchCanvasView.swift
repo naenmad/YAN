@@ -223,25 +223,31 @@ public struct NotchCanvasView: View {
                                         Image(systemName: "music.note")
                                             .font(.system(size: 8))
                                             .foregroundColor(.cyan)
-                                        Text(lyric)
-                                            .lineLimit(1)
+                                        MarqueeText(
+                                            lyric,
+                                            fontSize: 9.5,
+                                            fontWeight: .semibold,
+                                            color: .cyan
+                                        )
                                     }
-                                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.cyan)
                                     .frame(maxWidth: 175, alignment: .leading)
                                 } else {
-                                    Text(track.title)
-                                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                                        .foregroundColor(.white.opacity(0.85))
-                                        .lineLimit(1)
-                                        .frame(maxWidth: 175, alignment: .leading)
+                                    MarqueeText(
+                                        track.title,
+                                        fontSize: 9.5,
+                                        fontWeight: .semibold,
+                                        color: .white.opacity(0.85)
+                                    )
+                                    .frame(maxWidth: 175, alignment: .leading)
                                 }
                             } else {
-                                Text(track.title)
-                                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.85))
-                                    .lineLimit(1)
-                                    .frame(maxWidth: 145, alignment: .leading)
+                                MarqueeText(
+                                    track.title,
+                                    fontSize: 9.5,
+                                    fontWeight: .semibold,
+                                    color: .white.opacity(0.85)
+                                )
+                                .frame(maxWidth: 145, alignment: .leading)
                             }
                             
                             Spacer()
@@ -711,11 +717,14 @@ public struct NotchCanvasView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "music.note")
                                 .font(.system(size: 8))
-                            Text(media.currentLyric ?? "Instrumental")
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
-                                .lineLimit(1)
+                                .foregroundColor(.cyan)
+                            MarqueeText(
+                                media.currentLyric ?? "Instrumental",
+                                fontSize: 10,
+                                fontWeight: .bold,
+                                color: .cyan
+                            )
                         }
-                        .foregroundColor(.cyan)
                         
                         // 3. Lirik Berikutnya (Faded)
                         Text(media.nextLyric ?? " ")
@@ -934,11 +943,14 @@ public struct NotchCanvasView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: "music.note")
                                     .font(.system(size: 8))
-                                Text(lyric)
-                                    .lineLimit(1)
+                                    .foregroundColor(.cyan)
+                                MarqueeText(
+                                    lyric,
+                                    fontSize: 9,
+                                    fontWeight: .semibold,
+                                    color: .cyan
+                                )
                             }
-                            .font(.system(size: 9, weight: .semibold, design: .rounded))
-                            .foregroundColor(.cyan)
                         } else {
                             Text(track.artist.isEmpty ? track.sourceApp : track.artist)
                                 .font(.system(size: 9.5, weight: .medium))
@@ -1031,5 +1043,83 @@ public struct NotchCanvasView: View {
             NotchCalendarView(isLarge: false)
                 .frame(width: 170)
         }
+    }
+}
+
+// MARK: - MarqueeText (Auto-Scrolling Marquee Horizontal untuk Lirik & Teks Panjang)
+
+public struct MarqueeText: View {
+    public let text: String
+    public var fontSize: CGFloat = 9.5
+    public var fontWeight: Font.Weight = .semibold
+    public var color: Color = .cyan
+    public var alignment: Alignment = .leading
+    
+    @State private var isScrolling: Bool = false
+    
+    public init(
+        _ text: String,
+        fontSize: CGFloat = 9.5,
+        fontWeight: Font.Weight = .semibold,
+        color: Color = .cyan,
+        alignment: Alignment = .leading
+    ) {
+        self.text = text
+        self.fontSize = fontSize
+        self.fontWeight = fontWeight
+        self.color = color
+        self.alignment = alignment
+    }
+    
+    private var nsFont: NSFont {
+        let weight: NSFont.Weight
+        switch fontWeight {
+        case .bold: weight = .bold
+        case .semibold: weight = .semibold
+        case .medium: weight = .medium
+        default: weight = .regular
+        }
+        let font = NSFont.systemFont(ofSize: fontSize, weight: weight)
+        if let desc = font.fontDescriptor.withDesign(.rounded) {
+            return NSFont(descriptor: desc, size: fontSize) ?? font
+        }
+        return font
+    }
+    
+    private var textWidth: CGFloat {
+        (text as NSString).size(withAttributes: [.font: nsFont]).width
+    }
+    
+    public var body: some View {
+        GeometryReader { geo in
+            let containerWidth = geo.size.width
+            let overflow = max(0, textWidth - containerWidth + 8)
+            
+            ZStack(alignment: alignment) {
+                Text(text)
+                    .font(.system(size: fontSize, weight: fontWeight, design: .rounded))
+                    .foregroundColor(color)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .offset(x: isScrolling && overflow > 0 ? -overflow : 0)
+                    .animation(
+                        overflow > 0
+                            ? Animation.easeInOut(duration: max(2.5, Double(overflow) / 18.0))
+                                .delay(1.2)
+                                .repeatForever(autoreverses: true)
+                            : .default,
+                        value: isScrolling
+                    )
+            }
+            .frame(width: containerWidth, alignment: alignment)
+            .clipped()
+            .onAppear {
+                if overflow > 0 {
+                    isScrolling = true
+                }
+            }
+        }
+        .frame(height: fontSize + 4)
+        .id(text)
     }
 }
