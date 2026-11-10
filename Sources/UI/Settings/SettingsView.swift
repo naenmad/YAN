@@ -221,15 +221,31 @@ private struct GeometryCategoryView: View {
                 .padding(14)
             }
             
-            // 4. Outline Border
+            // 4. Subtle Border Hint
             GroupBox {
-                VStack(alignment: .leading, spacing: 10) {
-                    Toggle("Show Border Outline", isOn: $store.preferences.showOutline)
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Show Subtle Border Hint", isOn: $store.preferences.showOutline)
                         .fontWeight(.medium)
                     
-                    Text("Draws a subtle crisp outline so the notch silhouette stays clearly visible even when the menu bar turns solid black in full-screen apps.")
+                    Text("Adds a razor-thin 0.5pt specular reflection so the notch silhouette is gently perceptible against pitch-black backgrounds.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
+                    
+                    if store.preferences.showOutline {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("Hint Opacity")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(Int(store.preferences.outlineOpacity * 100))%")
+                                    .font(.footnote.monospacedDigit())
+                                    .foregroundColor(.secondary)
+                            }
+                            Slider(value: $store.preferences.outlineOpacity, in: 0.04...0.25, step: 0.02)
+                        }
+                        .padding(.top, 2)
+                    }
                 }
                 .padding(14)
             }

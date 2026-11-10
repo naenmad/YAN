@@ -44,9 +44,9 @@ public struct NotchCanvasView: View {
                     earRadius: CGFloat(store.preferences.earRadius)
                 )
                 .fill(Color.black)
-                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.40 : 0.0), radius: 10, x: 0, y: 5)
+                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.35 : 0.0), radius: 10, x: 0, y: 5)
                 
-                // 2. Visible Outline Border (Keeps notch visible on black full-screen menu bars)
+                // 2. Faint Rim Hint (Razor-thin 0.5pt specular reflection)
                 if store.preferences.showOutline {
                     NotchBorderShape(
                         cornerRadius: activeCornerRadius,
@@ -55,14 +55,14 @@ public struct NotchCanvasView: View {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.40),
-                                Color.white.opacity(0.22),
-                                Color.white.opacity(0.40)
+                                Color.white.opacity(store.preferences.outlineOpacity),
+                                Color.white.opacity(store.preferences.outlineOpacity * 0.45),
+                                Color.white.opacity(store.preferences.outlineOpacity)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1.0
+                        lineWidth: 0.5
                     )
                 }
                 
@@ -75,13 +75,13 @@ public struct NotchCanvasView: View {
                         
                         Text("YAN")
                             .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.90))
+                            .foregroundColor(.white.opacity(0.85))
                         
                         Spacer()
                         
                         Text("Settings: Double-click")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.55))
+                            .foregroundColor(.white.opacity(0.50))
                     }
                     .padding(.horizontal, 14)
                     .padding(.top, 6)

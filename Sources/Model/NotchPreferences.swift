@@ -97,10 +97,12 @@ public struct NotchPreferences: Codable, Equatable {
     public var cornerRadius: Double = 14.0
     public var earRadius: Double = 6.0
     
-    public var showOutline: Bool = true // Outline border to stay visible on black full-screen menu bars
+    public var showOutline: Bool = true
+    public var outlineOpacity: Double = 0.12 // Sangat halus (hint doang: 12% opacity, hairline 0.5pt)
+    
     public var expandOnHover: Bool = true
     public var expandOnClick: Bool = false
-    public var lockHeightOnHover: Bool = false // Locks height to menu bar, expands only horizontally
+    public var lockHeightOnHover: Bool = false
     public var hoverScaleWidth: Double = 1.25
     public var hoverScaleHeight: Double = 1.15
     
@@ -148,6 +150,10 @@ public final class NotchSettingsStore: ObservableObject {
             }
             if loaded.hoverScaleHeight > 1.25 {
                 loaded.hoverScaleHeight = 1.15
+            }
+            // Pastikan opacity outline default halus (hint) jika belum tersetel
+            if loaded.outlineOpacity == 0 || loaded.outlineOpacity > 0.20 {
+                loaded.outlineOpacity = 0.12
             }
             loaded.updateRadiiForCurrentStyle()
             self.preferences = loaded
