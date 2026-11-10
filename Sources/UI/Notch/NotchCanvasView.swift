@@ -467,82 +467,9 @@ public struct NotchCanvasView: View {
         let availableW = max(360.0, currentW - 53) // padding 28 + spacing 24 + divider 1
         let leftWidth = max(230.0, availableW * 0.54)
         let rightWidth = max(190.0, availableW - leftWidth)
-        let dividerHeight = max(55.0, currentH - 58)
+        let dividerHeight = max(70.0, currentH - 32)
         
-        VStack(spacing: 6) {
-            // Header Bar: Page Switcher Capsule + Collapse Chevron
-            HStack(spacing: 8) {
-                // Page Switcher Capsule
-                HStack(spacing: 2) {
-                    Button {
-                        pageManager.switchToPage(.dashboard)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "square.grid.2x2.fill")
-                                .font(.system(size: 8))
-                            Text("Dashboard")
-                                .font(.system(size: 8.5, weight: .semibold))
-                        }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(activePage == .dashboard ? Color.white.opacity(0.18) : Color.clear)
-                        .foregroundColor(activePage == .dashboard ? .white : .white.opacity(0.45))
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        pageManager.switchToPage(.dropZone)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "tray.and.arrow.down.fill")
-                                .font(.system(size: 8))
-                            Text("Drop Zone")
-                                .font(.system(size: 8.5, weight: .semibold))
-                            if !shelf.items.isEmpty {
-                                Text("\(shelf.items.count)")
-                                    .font(.system(size: 7.5, weight: .bold))
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 4.5)
-                                    .padding(.vertical, 0.5)
-                                    .background(Color.cyan)
-                                    .clipShape(Capsule())
-                            }
-                        }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(activePage == .dropZone ? Color.cyan.opacity(0.25) : Color.clear)
-                        .foregroundColor(activePage == .dropZone ? .cyan : .white.opacity(0.45))
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(2)
-                .background(Color.white.opacity(0.06))
-                .clipShape(Capsule())
-                
-                Spacer()
-                
-                // Collapse button
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                        isExpanded = false
-                    }
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 8.5, weight: .bold))
-                        .foregroundColor(.white.opacity(0.50))
-                        .frame(width: 18, height: 18)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help("Collapse Notch")
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, 4)
-            
-            // Page Body Content
+        Group {
             if activePage == .dashboard {
                 HStack(spacing: 12) {
                     unifiedMediaPlayerSection
@@ -556,9 +483,11 @@ public struct NotchCanvasView: View {
                         .frame(width: rightWidth)
                 }
                 .padding(.horizontal, 14)
+                .padding(.top, 12)
                 .transition(.opacity)
             } else {
                 NotchDropZoneView()
+                    .padding(.top, 4)
                     .transition(.opacity)
             }
         }
@@ -899,7 +828,7 @@ public struct NotchCanvasView: View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
         let topPad = max(4.0, (hoverH - 40.0) / 2.0)
         
-        HStack(spacing: 8) {
+        Group {
             if activePage == .dashboard {
                 compactDashboardGlance
                     .transition(.opacity)
@@ -907,26 +836,8 @@ public struct NotchCanvasView: View {
                 NotchCompactDropZoneView()
                     .transition(.opacity)
             }
-            
-            // Hover Page Switcher Button
-            Button {
-                pageManager.togglePage()
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(activePage == .dropZone ? Color.cyan.opacity(0.20) : Color.white.opacity(0.08))
-                        .frame(width: 22, height: 22)
-                    
-                    Image(systemName: activePage == .dashboard ? "tray.and.arrow.down" : "square.grid.2x2")
-                        .font(.system(size: 9.5, weight: .bold))
-                        .foregroundColor(activePage == .dropZone ? .cyan : .white.opacity(0.70))
-                }
-            }
-            .buttonStyle(.plain)
-            .help(activePage == .dashboard ? "Switch to Drop Zone" : "Switch to Dashboard")
-            .padding(.trailing, 6)
         }
-        .padding(.leading, 10)
+        .padding(.horizontal, 12)
         .padding(.top, topPad)
     }
     
