@@ -320,37 +320,102 @@ private struct InteractionCategoryView: View {
                 .padding(14)
             }
             
-            if (store.preferences.expandOnHover || store.preferences.expandOnClick) && !store.preferences.lockHeightOnHover {
-                GroupBox(label: Text("Expansion Scaling").font(.subheadline.weight(.semibold))) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("Width Expansion Scale")
-                                    .fontWeight(.medium)
-                                Spacer()
-                                Text(String(format: "%.2fx", store.preferences.hoverScaleWidth))
-                                    .monospacedDigit()
-                                    .foregroundColor(.secondary)
-                            }
-                            Slider(value: $store.preferences.hoverScaleWidth, in: 1.1...1.6, step: 0.05)
+            // 3. Hover Mode Dimensions
+            GroupBox(label: Text("Hover Mode Dimensions").font(.subheadline.weight(.semibold))) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("Controls the size of the compact preview when the mouse pointer hovers over the notch.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Reset (500x56)") {
+                            store.preferences.hoverWidth = 500.0
+                            store.preferences.hoverHeight = 56.0
                         }
-                        
-                        Divider()
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("Height Expansion Scale")
-                                    .fontWeight(.medium)
-                                Spacer()
-                                Text(String(format: "%.2fx", store.preferences.hoverScaleHeight))
-                                    .monospacedDigit()
-                                    .foregroundColor(.secondary)
-                            }
-                            Slider(value: $store.preferences.hoverScaleHeight, in: 1.0...1.35, step: 0.05)
-                        }
+                        .font(.caption2)
+                        .buttonStyle(.borderless)
+                        .foregroundColor(.accentColor)
                     }
-                    .padding(14)
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Hover Width")
+                                .fontWeight(.medium)
+                            Spacer()
+                            Text("\(Int(store.preferences.hoverWidth)) pt")
+                                .monospacedDigit()
+                                .foregroundColor(.secondary)
+                        }
+                        Slider(value: $store.preferences.hoverWidth, in: 380...680, step: 5)
+                    }
+                    
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Hover Height")
+                                .fontWeight(.medium)
+                            Spacer()
+                            if store.preferences.lockHeightOnHover {
+                                Text("\(Int(store.preferences.height)) pt (Locked)")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("\(Int(store.preferences.hoverHeight)) pt")
+                                    .monospacedDigit()
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Slider(value: $store.preferences.hoverHeight, in: 40...80, step: 2)
+                            .disabled(store.preferences.lockHeightOnHover)
+                    }
                 }
+                .padding(14)
+            }
+            
+            // 4. Clicked Mode Dimensions
+            GroupBox(label: Text("Clicked Mode Dimensions (Dashboard)").font(.subheadline.weight(.semibold))) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("Controls the size of the enlarged dual-pod dashboard (Media Player + Calendar) when clicked.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Reset (580x152)") {
+                            store.preferences.clickedWidth = 580.0
+                            store.preferences.clickedHeight = 152.0
+                        }
+                        .font(.caption2)
+                        .buttonStyle(.borderless)
+                        .foregroundColor(.accentColor)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Clicked Width")
+                                .fontWeight(.medium)
+                            Spacer()
+                            Text("\(Int(store.preferences.clickedWidth)) pt")
+                                .monospacedDigit()
+                                .foregroundColor(.secondary)
+                        }
+                        Slider(value: $store.preferences.clickedWidth, in: 480...760, step: 5)
+                    }
+                    
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Clicked Height")
+                                .fontWeight(.medium)
+                            Spacer()
+                            Text("\(Int(store.preferences.clickedHeight)) pt")
+                                .monospacedDigit()
+                                .foregroundColor(.secondary)
+                        }
+                        Slider(value: $store.preferences.clickedHeight, in: 130...220, step: 2)
+                    }
+                }
+                .padding(14)
             }
         }
     }

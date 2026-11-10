@@ -122,6 +122,12 @@ public struct NotchPreferences: Codable, Equatable {
     public var hoverScaleWidth: Double = 1.25
     public var hoverScaleHeight: Double = 1.15
     
+    // Dimensi Eksplisit untuk Mode Hover & Mode Clicked
+    public var hoverWidth: Double = 500.0
+    public var hoverHeight: Double = 56.0
+    public var clickedWidth: Double = 580.0
+    public var clickedHeight: Double = 152.0
+    
     public var showInFullScreen: Bool = true
     public var displayTarget: DisplayTarget = .builtIn
     public var normalStateMediaDisplay: NormalStateMediaDisplay = .songTitle
@@ -134,6 +140,7 @@ public struct NotchPreferences: Codable, Equatable {
         case showOutline, outlineOpacity
         case expandOnHover, expandOnClick, lockHeightOnHover
         case hoverScaleWidth, hoverScaleHeight
+        case hoverWidth, hoverHeight, clickedWidth, clickedHeight
         case showInFullScreen, displayTarget
         case normalStateMediaDisplay
     }
@@ -156,6 +163,10 @@ public struct NotchPreferences: Codable, Equatable {
         lockHeightOnHover = try c.decodeIfPresent(Bool.self, forKey: .lockHeightOnHover) ?? false
         hoverScaleWidth = try c.decodeIfPresent(Double.self, forKey: .hoverScaleWidth) ?? 1.25
         hoverScaleHeight = try c.decodeIfPresent(Double.self, forKey: .hoverScaleHeight) ?? 1.15
+        hoverWidth = try c.decodeIfPresent(Double.self, forKey: .hoverWidth) ?? 500.0
+        hoverHeight = try c.decodeIfPresent(Double.self, forKey: .hoverHeight) ?? 56.0
+        clickedWidth = try c.decodeIfPresent(Double.self, forKey: .clickedWidth) ?? 580.0
+        clickedHeight = try c.decodeIfPresent(Double.self, forKey: .clickedHeight) ?? 152.0
         showInFullScreen = try c.decodeIfPresent(Bool.self, forKey: .showInFullScreen) ?? true
         displayTarget = try c.decodeIfPresent(DisplayTarget.self, forKey: .displayTarget) ?? .builtIn
         normalStateMediaDisplay = try c.decodeIfPresent(NormalStateMediaDisplay.self, forKey: .normalStateMediaDisplay) ?? .songTitle
@@ -205,6 +216,10 @@ public final class NotchSettingsStore: ObservableObject {
             if loaded.outlineOpacity == 0 || loaded.outlineOpacity > 0.20 {
                 loaded.outlineOpacity = 0.12
             }
+            if loaded.hoverWidth < 300 || loaded.hoverWidth > 800 { loaded.hoverWidth = 500.0 }
+            if loaded.hoverHeight < 30 || loaded.hoverHeight > 120 { loaded.hoverHeight = 56.0 }
+            if loaded.clickedWidth < 400 || loaded.clickedWidth > 900 { loaded.clickedWidth = 580.0 }
+            if loaded.clickedHeight < 100 || loaded.clickedHeight > 300 { loaded.clickedHeight = 152.0 }
             loaded.expandOnClick = true
             loaded.updateRadiiForCurrentStyle()
             self.preferences = loaded

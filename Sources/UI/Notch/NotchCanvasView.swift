@@ -109,14 +109,14 @@ public struct NotchCanvasView: View {
         return media.currentTrack != nil && media.currentTrack!.isValid
     }
     
-    // Dimensi adaptif: Resting (200x30) -> Hover (500x56) -> Clicked (580x152)
+    // Dimensi adaptif yang dapat disetel: Resting -> Hover -> Clicked
     private var currentWidth: CGFloat {
         let base = CGFloat(store.preferences.width)
         if isExpanded {
-            return 580.0
+            return CGFloat(store.preferences.clickedWidth)
         }
         if isHovered && store.preferences.expandOnHover {
-            return 500.0
+            return CGFloat(store.preferences.hoverWidth)
         }
         if hasActiveMedia && store.preferences.normalStateMediaDisplay != .empty {
             return store.preferences.normalStateMediaDisplay == .lyrics ? max(base, 250.0) : max(base, 220.0)
@@ -127,10 +127,13 @@ public struct NotchCanvasView: View {
     private var currentHeight: CGFloat {
         let base = CGFloat(store.preferences.height)
         if isExpanded {
-            return 152.0
+            return CGFloat(store.preferences.clickedHeight)
         }
         if isHovered && store.preferences.expandOnHover {
-            return 56.0
+            if store.preferences.lockHeightOnHover {
+                return base
+            }
+            return CGFloat(store.preferences.hoverHeight)
         }
         return base
     }
@@ -302,24 +305,31 @@ public struct NotchCanvasView: View {
         }
     }
     
-    // MARK: - Large Unified Content (580x148 pt)
+    // MARK: - Large Unified Content (Mode Clicked / Expanded Dashboard)
     
     @ViewBuilder
     private var largeUnifiedContent: some View {
+        let currentW = CGFloat(store.preferences.clickedWidth)
+        let currentH = CGFloat(store.preferences.clickedHeight)
+        let availableW = max(360.0, currentW - 53) // padding 28 + spacing 24 + divider 1
+        let leftWidth = max(230.0, availableW * 0.54)
+        let rightWidth = max(190.0, availableW - leftWidth)
+        let dividerHeight = max(70.0, currentH - 34)
+        
         HStack(spacing: 12) {
-            // SISI KIRI: Media Player Seimbang + Scrubber Slider + Kontrol Terpusat
+            // SISI KIRI: Media Player Seimbang + Scrubber Slider + Kontrol Terpusat + Lirik 3 Baris
             unifiedMediaPlayerSection
-                .frame(width: 290)
+                .frame(width: leftWidth)
             
             // DIVIDER TENGAH
             Rectangle()
                 .fill(Color.white.opacity(0.10))
-                .frame(width: 1, height: 118)
+                .frame(width: 1, height: dividerHeight)
             
             // SISI KANAN: 1-Row Week Calendar + Schedule + Month Switcher
             ZStack(alignment: .topTrailing) {
                 NotchCalendarView(isLarge: true)
-                    .frame(width: 245)
+                    .frame(width: rightWidth)
                 
                 // Tombol collapse di pojok kanan atas
                 Button {
@@ -671,10 +681,14 @@ public struct NotchCanvasView: View {
         }
     }
     
-    // MARK: - Compact Hover Content (Saat Hover 500x56)
+    // MARK: - Compact Hover Content (Mode Hover)
     
     @ViewBuilder
     private var compactHoverContent: some View {
+        let hoverH = CGFloat(store.preferences.hoverHeight)
+        let topPad = max(6.0, (hoverH - 38.0) / 2.0)
+        let dividerH = max(22.0, hoverH - 20.0)
+        
         HStack(spacing: 12) {
             if hasActiveMedia, let track = media.currentTrack {
                 // SISI KIRI: Compact Media (Lebar ~300pt)
@@ -814,13 +828,13 @@ public struct NotchCanvasView: View {
             // DIVIDER
             Rectangle()
                 .fill(Color.white.opacity(0.10))
-                .frame(width: 1, height: 36)
+                .frame(width: 1, height: dividerH)
             
             // SISI KANAN: Compact 7-Day Calendar (Lebar ~170pt)
             NotchCalendarView(isLarge: false)
                 .frame(width: 170)
         }
         .padding(.horizontal, 14)
-        .padding(.top, 9)
+        .padding(.top, topPad)
     }
 }
