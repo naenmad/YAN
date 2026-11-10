@@ -25,7 +25,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: settingsView)
         
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 680, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 500),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -33,7 +33,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         
         newWindow.title = "Pengaturan YAN"
         newWindow.contentView = hostingView
-        newWindow.minSize = NSSize(width: 580, height: 400)
+        newWindow.minSize = NSSize(width: 660, height: 440)
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self

@@ -16,6 +16,10 @@ public struct NotchCanvasView: View {
     
     private var currentHeight: CGFloat {
         let base = CGFloat(store.preferences.height)
+        // Jika dikunci, tinggi notch tidak pernah bertambah ke bawah saat hover
+        if store.preferences.lockHeightOnHover {
+            return base
+        }
         if (store.preferences.expandOnHover && isHovered) || isExpanded {
             return base * CGFloat(store.preferences.hoverScaleHeight)
         }
@@ -25,7 +29,7 @@ public struct NotchCanvasView: View {
     private var activeCornerRadius: CGFloat {
         let base = CGFloat(store.preferences.cornerRadius)
         if (store.preferences.expandOnHover && isHovered) || isExpanded {
-            return base + 4.0
+            return base + 2.0
         }
         return base
     }
@@ -41,28 +45,28 @@ public struct NotchCanvasView: View {
                     earRadius: CGFloat(store.preferences.earRadius)
                 )
                 .fill(Color.black)
-                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.45 : 0.0), radius: 12, x: 0, y: 6)
+                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.35 : 0.0), radius: 10, x: 0, y: 5)
                 
                 // Konten Notch saat Mode Terbuka (Hover / Expanded)
                 if (store.preferences.expandOnHover && isHovered) || isExpanded {
                     HStack(spacing: 8) {
                         Circle()
                             .fill(Color.green)
-                            .frame(width: 6, height: 6)
+                            .frame(width: 5, height: 5)
                         
                         Text("YAN")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundColor(.white.opacity(0.85))
                         
                         Spacer()
                         
                         Text("Pengaturan: 2x Klik")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(.white.opacity(0.45))
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .padding(.horizontal, 14)
+                    .padding(.top, 6)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
             .frame(width: currentWidth, height: currentHeight)
@@ -74,7 +78,7 @@ public struct NotchCanvasView: View {
             )
             .onHover { hovering in
                 guard store.preferences.expandOnHover else { return }
-                withAnimation(.spring(response: 0.30, dampingFraction: 0.72)) {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
                     isHovered = hovering
                 }
             }
@@ -83,7 +87,7 @@ public struct NotchCanvasView: View {
             }
             .onTapGesture(count: 1) {
                 if store.preferences.expandOnClick {
-                    withAnimation(.spring(response: 0.30, dampingFraction: 0.72)) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
                         isExpanded.toggle()
                     }
                 }
@@ -102,9 +106,12 @@ public struct NotchCanvasView: View {
                 }
             }
             
-            // Spacer mendorong notch selalu menempel rapat di tepi atas jendela
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)) { _ in
+            // Saat berpindah Desktop Space atau masuk ke full screen, reset hover agar tidak macet di posisi mengembang
+            isHovered = false
+        }
     }
 }

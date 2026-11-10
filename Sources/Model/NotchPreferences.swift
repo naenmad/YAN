@@ -2,8 +2,8 @@ import Foundation
 import SwiftUI
 
 public enum HeightPreset: String, Codable, CaseIterable, Identifiable {
-    case menuBar = "menubar"
     case compact = "compact"
+    case menuBar = "menubar"
     case tall = "tall"
     case custom = "custom"
     
@@ -11,17 +11,17 @@ public enum HeightPreset: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .menuBar: return "Pas Menu Bar (30 pt)"
-        case .compact: return "Kompak (26 pt)"
-        case .tall: return "Besar (36 pt)"
+        case .compact: return "Kompak (26)"
+        case .menuBar: return "Menu Bar (30)"
+        case .tall: return "Besar (36)"
         case .custom: return "Kustom"
         }
     }
     
     public var value: Double {
         switch self {
-        case .menuBar: return 30.0
         case .compact: return 26.0
+        case .menuBar: return 30.0
         case .tall: return 36.0
         case .custom: return 30.0
         }
@@ -38,9 +38,9 @@ public enum WidthPreset: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .compact: return "Kompak (160 pt)"
-        case .standard: return "Standar (200 pt)"
-        case .wide: return "Lebar (260 pt)"
+        case .compact: return "Kompak (160)"
+        case .standard: return "Standar (200)"
+        case .wide: return "Lebar (260)"
         case .custom: return "Kustom"
         }
     }
@@ -64,9 +64,9 @@ public enum NotchStyle: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .apple: return "Standar Apple (Notch Asli)"
-        case .capsule: return "Kapsul (Dynamic Island)"
-        case .subtle: return "Sudut Halus (Minimalis)"
+        case .apple: return "Notch Apple"
+        case .capsule: return "Kapsul"
+        case .subtle: return "Minimalis"
         }
     }
 }
@@ -99,15 +99,15 @@ public struct NotchPreferences: Codable, Equatable {
     
     public var expandOnHover: Bool = true
     public var expandOnClick: Bool = false
-    public var hoverScaleWidth: Double = 1.35
-    public var hoverScaleHeight: Double = 1.50
+    public var lockHeightOnHover: Bool = false // Jika true, tinggi notch tetap 30pt (hanya lebar yang mengembang)
+    public var hoverScaleWidth: Double = 1.25
+    public var hoverScaleHeight: Double = 1.15 // Default diperhalus (tidak lagi 1.5x yang terlalu tinggi)
     
     public var showInFullScreen: Bool = true
     public var displayTarget: DisplayTarget = .builtIn
     
     public static let `default` = NotchPreferences()
     
-    /// Menghitung radius sudut secara otomatis dan proporsional sesuai gaya yang dipilih
     public mutating func updateRadiiForCurrentStyle() {
         switch notchStyle {
         case .apple:
@@ -144,6 +144,10 @@ public final class NotchSettingsStore: ObservableObject {
             }
             if loaded.height < 24 {
                 loaded.height = 30.0
+            }
+            // Batasi skala tinggi agar tidak terlalu besar di fullscreen
+            if loaded.hoverScaleHeight > 1.25 {
+                loaded.hoverScaleHeight = 1.15
             }
             loaded.updateRadiiForCurrentStyle()
             self.preferences = loaded

@@ -21,17 +21,39 @@ public enum SettingsCategory: String, CaseIterable, Identifiable {
 
 public struct SettingsView: View {
     @ObservedObject var store: NotchSettingsStore = .shared
-    @State private var selectedCategory: SettingsCategory? = .geometry
+    @State private var selectedCategory: SettingsCategory = .geometry
     
     public var body: some View {
-        NavigationSplitView {
-            List(SettingsCategory.allCases, selection: $selectedCategory) { category in
-                Label(category.rawValue, systemImage: category.icon)
-                    .tag(category)
+        HStack(spacing: 0) {
+            // MARK: - 1. Fixed Unbreakable Sidebar
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Pengaturan")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+                    .padding(.bottom, 6)
+                
+                ForEach(SettingsCategory.allCases) { category in
+                    SidebarItemButton(
+                        title: category.rawValue,
+                        icon: category.icon,
+                        isSelected: selectedCategory == category
+                    ) {
+                        selectedCategory = category
+                    }
+                }
+                
+                Spacer()
             }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
-        } detail: {
+            .padding(.horizontal, 8)
+            .frame(width: 200)
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.55))
+            
+            Divider()
+            
+            // MARK: - 2. Detail Content Pane
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     switch selectedCategory {
@@ -43,21 +65,52 @@ public struct SettingsView: View {
                         DisplayCategoryView(store: store)
                     case .about:
                         AboutCategoryView(store: store)
-                    case .none:
-                        Text("Pilih kategori pengaturan di sidebar.")
-                            .foregroundColor(.secondary)
                     }
                 }
-                .padding(24)
+                .padding(26)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(minWidth: 620, idealWidth: 660, minHeight: 420, idealHeight: 480)
+        .frame(minWidth: 700, idealWidth: 740, minHeight: 480, idealHeight: 520)
     }
 }
 
-// MARK: - Geometry Category (Simplified & Curated Presets)
+// MARK: - Sidebar Item Component
+
+private struct SidebarItemButton: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 20)
+                    .foregroundColor(isSelected ? .white : .accentColor)
+                
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? .white : .primary)
+                
+                Spacer()
+            }
+            .padding(.vertical, 7)
+            .padding(.horizontal, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isSelected ? Color.accentColor : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Geometry Category View
 
 private struct GeometryCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
@@ -72,38 +125,45 @@ private struct GeometryCategoryView: View {
                     .foregroundColor(.secondary)
             }
             
-            // 1. Tinggi Notch (Height Presets)
+            // 1. Tinggi Notch
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Tinggi Notch")
-                            .fontWeight(.medium)
-                        Text("Standar 'Pas Menu Bar' mengikuti ketebalan menu bar bawaan macOS.")
-                            .font(.footnote)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Tinggi Notch")
+                                .fontWeight(.medium)
+                            Text("Pilihan 'Menu Bar (30)' rata sempurna dengan menu bar MacBook Air.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Text("\(Int(store.preferences.height)) pt")
+                            .monospacedDigit()
                             .foregroundColor(.secondary)
                     }
                     
-                    Picker("Tinggi Notch", selection: Binding(
+                    Picker("", selection: Binding(
                         get: { store.preferences.heightPreset },
                         set: { store.applyHeightPreset($0) }
                     )) {
-                        Text("Kompak (26 pt)").tag(HeightPreset.compact)
-                        Text("Pas Menu Bar (30 pt)").tag(HeightPreset.menuBar)
-                        Text("Besar (36 pt)").tag(HeightPreset.tall)
+                        Text("Kompak (26)").tag(HeightPreset.compact)
+                        Text("Menu Bar (30)").tag(HeightPreset.menuBar)
+                        Text("Besar (36)").tag(HeightPreset.tall)
                     }
+                    .labelsHidden()
                     .pickerStyle(.segmented)
                 }
                 .padding(14)
             }
             
-            // 2. Lebar Notch (Width Presets)
+            // 2. Lebar Notch
             GroupBox {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Text("Lebar Notch")
                                 .fontWeight(.medium)
-                            Text("Pilih preset lebar atau geser halus untuk penyesuaian.")
+                            Text("Pilih preset lebar atau geser slider untuk ukuran kustom.")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -113,7 +173,7 @@ private struct GeometryCategoryView: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    Picker("Preset Lebar", selection: Binding(
+                    Picker("", selection: Binding(
                         get: { store.preferences.widthPreset },
                         set: { store.applyWidthPreset($0) }
                     )) {
@@ -121,6 +181,7 @@ private struct GeometryCategoryView: View {
                         Text("Standar (200)").tag(WidthPreset.standard)
                         Text("Lebar (260)").tag(WidthPreset.wide)
                     }
+                    .labelsHidden()
                     .pickerStyle(.segmented)
                     
                     Slider(value: Binding(
@@ -130,22 +191,23 @@ private struct GeometryCategoryView: View {
                             store.preferences.widthPreset = .custom
                         }
                     ), in: 140...320, step: 2)
+                    .padding(.top, 4)
                 }
                 .padding(14)
             }
             
-            // 3. Bentuk & Kelengkungan Sudut (Auto Curvature)
+            // 3. Gaya Lekukan
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("Gaya & Lekukan Sudut")
                             .fontWeight(.medium)
-                        Text("Kelengkungan sudut dihitung otomatis secara proporsional sesuai tinggi notch.")
+                        Text("Kelengkungan sudut dihitung otomatis dan proporsional terhadap tinggi notch.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
                     
-                    Picker("Gaya Lekukan", selection: Binding(
+                    Picker("", selection: Binding(
                         get: { store.preferences.notchStyle },
                         set: { store.applyNotchStyle($0) }
                     )) {
@@ -153,6 +215,7 @@ private struct GeometryCategoryView: View {
                             Text(style.label).tag(style)
                         }
                     }
+                    .labelsHidden()
                     .pickerStyle(.segmented)
                 }
                 .padding(14)
@@ -161,7 +224,7 @@ private struct GeometryCategoryView: View {
     }
 }
 
-// MARK: - Interaction Category
+// MARK: - Interaction Category View
 
 private struct InteractionCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
@@ -187,6 +250,15 @@ private struct InteractionCategoryView: View {
                     
                     Divider()
                     
+                    Toggle("Kunci Tinggi Notch (Hanya Melebar ke Samping)", isOn: $store.preferences.lockHeightOnHover)
+                        .fontWeight(.medium)
+                    
+                    Text("Tinggi notch akan tetap persis setinggi menu bar (30 pt) tanpa bertambah panjang ke bawah saat kursor mendekat.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                    Divider()
+                    
                     Toggle("Expand saat Diklik", isOn: $store.preferences.expandOnClick)
                         .fontWeight(.medium)
                     
@@ -197,33 +269,33 @@ private struct InteractionCategoryView: View {
                 .padding(14)
             }
             
-            if store.preferences.expandOnHover || store.preferences.expandOnClick {
+            if (store.preferences.expandOnHover || store.preferences.expandOnClick) && !store.preferences.lockHeightOnHover {
                 GroupBox(label: Text("Skala Animasi Ekspansi").font(.subheadline.weight(.semibold))) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text("Skala Lebar")
+                                Text("Skala Lebar Ekspansi")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Text(String(format: "%.2fx", store.preferences.hoverScaleWidth))
                                     .monospacedDigit()
                                     .foregroundColor(.secondary)
                             }
-                            Slider(value: $store.preferences.hoverScaleWidth, in: 1.1...1.8, step: 0.05)
+                            Slider(value: $store.preferences.hoverScaleWidth, in: 1.1...1.6, step: 0.05)
                         }
                         
                         Divider()
                         
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text("Skala Tinggi")
+                                Text("Skala Tinggi Ekspansi")
                                     .fontWeight(.medium)
                                 Spacer()
                                 Text(String(format: "%.2fx", store.preferences.hoverScaleHeight))
                                     .monospacedDigit()
                                     .foregroundColor(.secondary)
                             }
-                            Slider(value: $store.preferences.hoverScaleHeight, in: 1.1...2.2, step: 0.05)
+                            Slider(value: $store.preferences.hoverScaleHeight, in: 1.0...1.35, step: 0.05)
                         }
                     }
                     .padding(14)
@@ -233,7 +305,7 @@ private struct InteractionCategoryView: View {
     }
 }
 
-// MARK: - Display Category
+// MARK: - Display Category View
 
 private struct DisplayCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
@@ -251,7 +323,7 @@ private struct DisplayCategoryView: View {
             GroupBox {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Text("Target Monitor")
                                 .fontWeight(.medium)
                             Text("Pilih layar tempat notch ditampilkan.")
@@ -284,7 +356,7 @@ private struct DisplayCategoryView: View {
     }
 }
 
-// MARK: - About Category
+// MARK: - About Category View
 
 private struct AboutCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
