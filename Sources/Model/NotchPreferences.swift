@@ -129,8 +129,8 @@ public enum NotchPage: String, Codable, CaseIterable, Identifiable {
         case .dashboard: return "square.grid.2x2.fill"
         case .dropZone: return "tray.and.arrow.down.fill"
         case .clipboard: return "doc.on.clipboard.fill"
-        case .hardwareHUD: return "cpu.fill"
-        case .quickTools: return "wrench.and.screwdriver.fill"
+        case .hardwareHUD: return "cpu"
+        case .quickTools: return "slider.horizontal.3"
         case .scratchpad: return "note.text"
         }
     }
@@ -140,8 +140,8 @@ public enum NotchPage: String, Codable, CaseIterable, Identifiable {
         case .dashboard: return "Media playback with synced lyrics & week calendar"
         case .dropZone: return "Native AirDrop target & temporary stash shelf"
         case .clipboard: return "Clipboard history & pinned snippets manager"
-        case .hardwareHUD: return "Real-time CPU, RAM & battery status HUD"
-        case .quickTools: return "Caffeine sleep blocker, eyedropper, OCR & sound"
+        case .hardwareHUD: return "Apple Silicon compute load, RAM & battery status"
+        case .quickTools: return "Sleep guard, mic privacy, color picker & screen snip"
         case .scratchpad: return "Instant scratchpad thoughts & daily to-do checklist"
         }
     }

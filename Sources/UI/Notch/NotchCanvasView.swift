@@ -219,9 +219,10 @@ public struct NotchCanvasView: View {
                             
                             if store.preferences.normalStateMediaDisplay == .lyrics {
                                 if let lyric = media.currentLyric, !lyric.isEmpty {
-                                    HStack(spacing: 3) {
-                                        Text("♪")
-                                            .font(.system(size: 8, weight: .bold))
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "music.note")
+                                            .font(.system(size: 8))
+                                            .foregroundColor(.cyan)
                                         Text(lyric)
                                             .lineLimit(1)
                                     }
@@ -344,13 +345,6 @@ public struct NotchCanvasView: View {
         .onDisappear {
             stopOutsideClickMonitoring()
             stopTrackpadSwipeMonitoring()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
-            if isExpanded {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                    isExpanded = false
-                }
-            }
         }
         .onDrop(of: [.fileURL], isTargeted: $isGlobalDragTargeted) { providers in
             shelf.extractURLs(from: providers) { urls in
@@ -714,9 +708,9 @@ public struct NotchCanvasView: View {
                             .lineLimit(1)
                         
                         // 2. Lirik Aktif (Highlight Cyan)
-                        HStack(spacing: 3) {
-                            Text("♪")
-                                .font(.system(size: 8.5, weight: .bold))
+                        HStack(spacing: 4) {
+                            Image(systemName: "music.note")
+                                .font(.system(size: 8))
                             Text(media.currentLyric ?? "Instrumental")
                                 .font(.system(size: 10, weight: .bold, design: .rounded))
                                 .lineLimit(1)
