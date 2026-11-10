@@ -16,6 +16,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         
         if let existing = window {
             existing.makeKeyAndOrderFront(nil)
+            existing.orderFrontRegardless()
             NSApp.activate(ignoringOtherApps: true)
             return
         }
@@ -39,6 +40,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         
         self.window = newWindow
         newWindow.makeKeyAndOrderFront(nil)
+        newWindow.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
     }
     

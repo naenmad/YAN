@@ -8,8 +8,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // 2. Daftarkan Global Hotkey (Cmd + Shift + ,)
         GlobalHotkeyManager.shared.registerDefaultShortcut()
         
-        // 3. Tampilkan jendela pengaturan native macOS
-        SettingsWindowController.shared.show()
+        // 3. Tampilkan jendela pengaturan native macOS di main queue
+        DispatchQueue.main.async {
+            SettingsWindowController.shared.show()
+        }
     }
     
     public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

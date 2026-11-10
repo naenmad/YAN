@@ -1,6 +1,76 @@
 import Foundation
 import SwiftUI
 
+public enum HeightPreset: String, Codable, CaseIterable, Identifiable {
+    case menuBar = "menubar"
+    case compact = "compact"
+    case tall = "tall"
+    case custom = "custom"
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .menuBar: return "Pas Menu Bar (30 pt)"
+        case .compact: return "Kompak (26 pt)"
+        case .tall: return "Besar (36 pt)"
+        case .custom: return "Kustom"
+        }
+    }
+    
+    public var value: Double {
+        switch self {
+        case .menuBar: return 30.0
+        case .compact: return 26.0
+        case .tall: return 36.0
+        case .custom: return 30.0
+        }
+    }
+}
+
+public enum WidthPreset: String, Codable, CaseIterable, Identifiable {
+    case compact = "compact"
+    case standard = "standard"
+    case wide = "wide"
+    case custom = "custom"
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .compact: return "Kompak (160 pt)"
+        case .standard: return "Standar (200 pt)"
+        case .wide: return "Lebar (260 pt)"
+        case .custom: return "Kustom"
+        }
+    }
+    
+    public var value: Double {
+        switch self {
+        case .compact: return 160.0
+        case .standard: return 200.0
+        case .wide: return 260.0
+        case .custom: return 200.0
+        }
+    }
+}
+
+public enum NotchStyle: String, Codable, CaseIterable, Identifiable {
+    case apple = "apple"
+    case capsule = "capsule"
+    case subtle = "subtle"
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .apple: return "Standar Apple (Notch Asli)"
+        case .capsule: return "Kapsul (Dynamic Island)"
+        case .subtle: return "Sudut Halus (Minimalis)"
+        }
+    }
+}
+
 public enum DisplayTarget: String, Codable, CaseIterable, Identifiable {
     case builtIn = "builtin"
     case all = "all"
@@ -18,8 +88,12 @@ public enum DisplayTarget: String, Codable, CaseIterable, Identifiable {
 }
 
 public struct NotchPreferences: Codable, Equatable {
-    public var width: Double = 180.0
-    public var height: Double = 32.0
+    public var widthPreset: WidthPreset = .standard
+    public var heightPreset: HeightPreset = .menuBar
+    public var notchStyle: NotchStyle = .apple
+    
+    public var width: Double = 200.0
+    public var height: Double = 30.0
     public var cornerRadius: Double = 14.0
     public var earRadius: Double = 6.0
     
@@ -32,6 +106,21 @@ public struct NotchPreferences: Codable, Equatable {
     public var displayTarget: DisplayTarget = .builtIn
     
     public static let `default` = NotchPreferences()
+    
+    /// Menghitung radius sudut secara otomatis dan proporsional sesuai gaya yang dipilih
+    public mutating func updateRadiiForCurrentStyle() {
+        switch notchStyle {
+        case .apple:
+            self.cornerRadius = max(8.0, round(height * 0.45))
+            self.earRadius = max(4.0, round(height * 0.20))
+        case .capsule:
+            self.cornerRadius = round(height * 0.48)
+            self.earRadius = 0.0
+        case .subtle:
+            self.cornerRadius = 8.0
+            self.earRadius = 0.0
+        }
+    }
 }
 
 @MainActor
@@ -51,12 +140,38 @@ public final class NotchSettingsStore: ObservableObject {
            let decoded = try? JSONDecoder().decode(NotchPreferences.self, from: data) {
             var loaded = decoded
             if loaded.width < 140 {
-                loaded.width = 180.0
+                loaded.width = 200.0
             }
+            if loaded.height < 24 {
+                loaded.height = 30.0
+            }
+            loaded.updateRadiiForCurrentStyle()
             self.preferences = loaded
         } else {
-            self.preferences = .default
+            var initial = NotchPreferences.default
+            initial.updateRadiiForCurrentStyle()
+            self.preferences = initial
         }
+    }
+    
+    public func applyHeightPreset(_ preset: HeightPreset) {
+        preferences.heightPreset = preset
+        if preset != .custom {
+            preferences.height = preset.value
+            preferences.updateRadiiForCurrentStyle()
+        }
+    }
+    
+    public func applyWidthPreset(_ preset: WidthPreset) {
+        preferences.widthPreset = preset
+        if preset != .custom {
+            preferences.width = preset.value
+        }
+    }
+    
+    public func applyNotchStyle(_ style: NotchStyle) {
+        preferences.notchStyle = style
+        preferences.updateRadiiForCurrentStyle()
     }
     
     public func save() {
@@ -66,6 +181,8 @@ public final class NotchSettingsStore: ObservableObject {
     }
     
     public func resetToDefaults() {
-        self.preferences = .default
+        var def = NotchPreferences.default
+        def.updateRadiiForCurrentStyle()
+        self.preferences = def
     }
 }
