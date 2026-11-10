@@ -12,53 +12,55 @@ public struct NotchDropZoneView: View {
     public init() {}
     
     public var body: some View {
-        HStack(spacing: 12) {
-            // SISI KIRI: AirDrop Target Box (Pure Icon, No Text)
-            airDropSection
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GeometryReader { geo in
+            let availableHeight = geo.size.height
+            // AirDrop dibuat kotak persegi proporsional
+            let airdropSize = max(60.0, availableHeight)
             
-            // DIVIDER TENGAH
-            Rectangle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 1)
-                .padding(.vertical, 4)
-            
-            // SISI KANAN: Temporary Shelf / Stash Area (Pure Icon, No Text)
-            shelfSection
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack(spacing: 12) {
+                // SISI KIRI: AirDrop Target Box (KOTAK PERSEGI SAJA)
+                airDropSection(size: airdropSize)
+                    .frame(width: airdropSize, height: airdropSize)
+                
+                // DIVIDER TENGAH
+                Rectangle()
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 1)
+                    .padding(.vertical, 4)
+                
+                // SISI KANAN: Temporary Shelf (MENGISI SELURUH SISA RUANG)
+                shelfSection
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
     }
     
-    // MARK: - AirDrop Drop Target
+    // MARK: - AirDrop Drop Target (Persegi Minimalis)
     
-    private var airDropSection: some View {
+    private func airDropSection(size: CGFloat) -> some View {
         Button {
             shelf.openAirDropFolder()
         } label: {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isAirDropHovered ? Color.cyan.opacity(0.16) : Color.white.opacity(0.04))
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isAirDropHovered ? Color.cyan.opacity(0.18) : Color.white.opacity(0.04))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .stroke(
                                 isAirDropHovered ? Color.cyan : Color.white.opacity(0.10),
                                 style: StrokeStyle(lineWidth: isAirDropHovered ? 1.5 : 1, dash: isAirDropHovered ? [] : [5, 4])
                             )
                     )
                 
-                // Pure Icon Centered (Simpel & Minimalis)
-                ZStack {
-                    Circle()
-                        .fill(isAirDropHovered ? Color.cyan.opacity(0.25) : Color.white.opacity(0.06))
-                        .frame(width: 48, height: 48)
-                    
-                    Image(systemName: "airdrop")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(isAirDropHovered ? .cyan : .white.opacity(0.85))
-                        .scaleEffect(isAirDropHovered ? 1.10 : 1.0)
-                }
+                // Ikon AirDrop Asli macOS (Bersih, Tanpa Tulisan)
+                Image(nsImage: ShelfManager.airDropIcon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: max(32.0, size * 0.42), height: max(32.0, size * 0.42))
+                    .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
+                    .scaleEffect(isAirDropHovered ? 1.10 : 1.0)
             }
             .contentShape(Rectangle())
         }
@@ -72,17 +74,17 @@ public struct NotchDropZoneView: View {
         .help("AirDrop: Drop files here to share, or click to open in Finder")
     }
     
-    // MARK: - Temporary Shelf Section
+    // MARK: - Temporary Shelf Section (Sisa Ruang)
     
     private var shelfSection: some View {
         Group {
             if shelf.items.isEmpty {
-                // Empty State: Pure Icon Centered (Simpel & Minimalis)
+                // Empty Drop Box: Ikon Simpan Minimalis di Tengah
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(isShelfHovered ? Color.cyan.opacity(0.16) : Color.white.opacity(0.04))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .stroke(
                                     isShelfHovered ? Color.cyan : Color.white.opacity(0.10),
                                     style: StrokeStyle(lineWidth: isShelfHovered ? 1.5 : 1, dash: isShelfHovered ? [] : [5, 4])
@@ -96,7 +98,7 @@ public struct NotchDropZoneView: View {
                         
                         Image(systemName: "tray.and.arrow.down")
                             .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
+                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.80))
                             .scaleEffect(isShelfHovered ? 1.10 : 1.0)
                     }
                 }
@@ -111,10 +113,24 @@ public struct NotchDropZoneView: View {
                 }
                 .help("Temporary Shelf: Drop files here to stash temporarily")
             } else {
-                // List Parked Files (Bisa di-Drag Out ke aplikasi lain!)
-                VStack(alignment: .leading, spacing: 4) {
+                // Daftar File Terparkir (Bisa di-drag out ke aplikasi lain)
+                VStack(alignment: .leading, spacing: 5) {
                     HStack {
+                        HStack(spacing: 4) {
+                            Image(systemName: "tray.and.arrow.down.fill")
+                                .font(.system(size: 8.5))
+                                .foregroundColor(.cyan)
+                            Text("\(shelf.items.count)")
+                                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                                .foregroundColor(.cyan)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.cyan.opacity(0.12))
+                        .clipShape(Capsule())
+                        
                         Spacer()
+                        
                         Button {
                             withAnimation(.easeInOut(duration: 0.18)) {
                                 shelf.clearAll()
@@ -128,7 +144,7 @@ public struct NotchDropZoneView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
-                        .help("Clear All")
+                        .help("Clear All Files")
                     }
                     
                     ScrollView(.vertical, showsIndicators: false) {
@@ -144,6 +160,11 @@ public struct NotchDropZoneView: View {
                         .padding(.vertical, 1)
                     }
                 }
+                .padding(8)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.white.opacity(0.03))
+                )
                 .onDrop(of: [.fileURL], isTargeted: $isShelfHovered) { providers in
                     shelf.extractURLs(from: providers) { urls in
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
@@ -194,7 +215,7 @@ private struct ShelfItemRow: View {
             .help("Remove from shelf")
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 4.5)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .fill(isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.06))
@@ -202,7 +223,6 @@ private struct ShelfItemRow: View {
         .onHover { hovering in
             isHovered = hovering
         }
-        // GESTURE DRAG OUT: Seret item ini keluar ke aplikasi lain (Finder, Telegram, Slack, VSCode, dll)
         .onDrag {
             NSItemProvider(object: item.url as NSURL)
         }
@@ -220,67 +240,73 @@ public struct NotchCompactDropZoneView: View {
     public init() {}
     
     public var body: some View {
-        HStack(spacing: 12) {
-            // SISI KIRI: Compact AirDrop (Pure Icon)
-            Button {
-                shelf.openAirDropFolder()
-            } label: {
+        GeometryReader { geo in
+            let boxHeight = geo.size.height
+            let airdropSize = max(36.0, boxHeight)
+            
+            HStack(spacing: 10) {
+                // SISI KIRI: Compact AirDrop (Kotak Persegi Saja)
+                Button {
+                    shelf.openAirDropFolder()
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(isAirDropHovered ? Color.cyan.opacity(0.20) : Color.white.opacity(0.05))
+                        
+                        Image(nsImage: ShelfManager.airDropIcon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: max(20.0, airdropSize * 0.55), height: max(20.0, airdropSize * 0.55))
+                            .scaleEffect(isAirDropHovered ? 1.10 : 1.0)
+                    }
+                    .frame(width: airdropSize, height: airdropSize)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onDrop(of: [.fileURL], isTargeted: $isAirDropHovered) { providers in
+                    shelf.extractURLs(from: providers) { urls in
+                        shelf.shareViaAirDrop(urls: urls)
+                    }
+                    return true
+                }
+                .help("AirDrop: Drop files here to share, or click to open in Finder")
+                
+                // DIVIDER
+                Rectangle()
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 1, height: max(18.0, boxHeight - 12))
+                
+                // SISI KANAN: Compact Shelf (Mengisi Seluruh Sisa Ruang)
                 ZStack {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isAirDropHovered ? Color.cyan.opacity(0.20) : Color.white.opacity(0.05))
+                        .fill(isShelfHovered ? Color.cyan.opacity(0.20) : Color.white.opacity(0.05))
                     
-                    Image(systemName: "airdrop")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(isAirDropHovered ? .cyan : .white.opacity(0.85))
-                        .scaleEffect(isAirDropHovered ? 1.12 : 1.0)
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "tray.and.arrow.down")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
+                            .scaleEffect(isShelfHovered ? 1.10 : 1.0)
+                        
+                        if !shelf.items.isEmpty {
+                            Circle()
+                                .fill(Color.cyan)
+                                .frame(width: 5, height: 5)
+                                .offset(x: 4, y: -2)
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .onDrop(of: [.fileURL], isTargeted: $isAirDropHovered) { providers in
-                shelf.extractURLs(from: providers) { urls in
-                    shelf.shareViaAirDrop(urls: urls)
-                }
-                return true
-            }
-            .help("AirDrop: Drop files here to share, or click to open in Finder")
-            
-            // DIVIDER
-            Rectangle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 1, height: 26)
-            
-            // SISI KANAN: Compact Shelf (Pure Icon)
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isShelfHovered ? Color.cyan.opacity(0.20) : Color.white.opacity(0.05))
-                
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "tray.and.arrow.down")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
-                        .scaleEffect(isShelfHovered ? 1.12 : 1.0)
-                    
-                    if !shelf.items.isEmpty {
-                        Circle()
-                            .fill(Color.cyan)
-                            .frame(width: 5, height: 5)
-                            .offset(x: 4, y: -2)
+                .onDrop(of: [.fileURL], isTargeted: $isShelfHovered) { providers in
+                    shelf.extractURLs(from: providers) { urls in
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            shelf.addItems(urls: urls)
+                        }
                     }
+                    return true
                 }
+                .help("Temporary Shelf: Drop files here to stash temporarily")
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .onDrop(of: [.fileURL], isTargeted: $isShelfHovered) { providers in
-                shelf.extractURLs(from: providers) { urls in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                        shelf.addItems(urls: urls)
-                    }
-                }
-                return true
-            }
-            .help("Temporary Shelf: Drop files here to stash temporarily")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)

@@ -41,6 +41,16 @@ public struct ShelfItem: Identifiable, Equatable {
 public final class ShelfManager: ObservableObject {
     public static let shared = ShelfManager()
     
+    public static let airDropIcon: NSImage = {
+        if let img = NSImage(contentsOfFile: "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AirDrop.icns") {
+            return img
+        }
+        if let sidebar = NSImage(contentsOfFile: "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/SidebarAirDrop.icns") {
+            return sidebar
+        }
+        return NSWorkspace.shared.icon(forFile: "/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app")
+    }()
+    
     @Published public var items: [ShelfItem] = []
     
     private init() {}
