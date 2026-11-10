@@ -3,23 +3,36 @@ import AppKit
 
 public struct NotchCanvasView: View {
     @ObservedObject var store: NotchSettingsStore = .shared
+    @ObservedObject var media: MediaManager = .shared
+    
     @State private var isHovered: Bool = false
     @State private var isExpanded: Bool = false
     
+    private var hasActiveMedia: Bool {
+        return media.currentTrack != nil && media.currentTrack!.isValid
+    }
+    
+    private var isPodExpanded: Bool {
+        return (store.preferences.expandOnHover && isHovered) || isExpanded
+    }
+    
     private var currentWidth: CGFloat {
         let base = CGFloat(store.preferences.width)
-        if (store.preferences.expandOnHover && isHovered) || isExpanded {
-            return base * CGFloat(store.preferences.hoverScaleWidth)
+        if isPodExpanded {
+            return hasActiveMedia ? max(base, 440.0) : base * CGFloat(store.preferences.hoverScaleWidth)
         }
-        return base
+        return hasActiveMedia ? max(base, 220.0) : base
     }
     
     private var currentHeight: CGFloat {
         let base = CGFloat(store.preferences.height)
-        if store.preferences.lockHeightOnHover {
-            return base
-        }
-        if (store.preferences.expandOnHover && isHovered) || isExpanded {
+        if isPodExpanded {
+            if hasActiveMedia {
+                return 64.0 // Tinggi leluasa untuk album art + judul + artis + baris lirik + kontrol
+            }
+            if store.preferences.lockHeightOnHover {
+                return base
+            }
             return base * CGFloat(store.preferences.hoverScaleHeight)
         }
         return base
@@ -27,8 +40,8 @@ public struct NotchCanvasView: View {
     
     private var activeCornerRadius: CGFloat {
         let base = CGFloat(store.preferences.cornerRadius)
-        if (store.preferences.expandOnHover && isHovered) || isExpanded {
-            return base + 2.0
+        if isPodExpanded {
+            return hasActiveMedia ? 16.0 : base + 2.0
         }
         return base
     }
@@ -44,9 +57,9 @@ public struct NotchCanvasView: View {
                     earRadius: CGFloat(store.preferences.earRadius)
                 )
                 .fill(Color.black)
-                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.35 : 0.0), radius: 10, x: 0, y: 5)
+                .shadow(color: Color.black.opacity(isPodExpanded ? 0.40 : 0.0), radius: 12, x: 0, y: 6)
                 
-                // 2. Faint Rim Hint (Razor-thin 0.5pt specular reflection)
+                // 2. Faint Rim Hint Outline
                 if store.preferences.showOutline {
                     NotchBorderShape(
                         cornerRadius: activeCornerRadius,
@@ -66,26 +79,45 @@ public struct NotchCanvasView: View {
                     )
                 }
                 
-                // 3. Content shown when expanded
-                if (store.preferences.expandOnHover && isHovered) || isExpanded {
+                // 3. Resting State: Mini Media Glance
+                if !isPodExpanded && hasActiveMedia, let track = media.currentTrack {
                     HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 5, height: 5)
+                        if let art = track.artwork {
+                            Image(nsImage: art)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 16, height: 16)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        } else {
+                            Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
+                                .font(.system(size: 10))
+                                .foregroundColor(.accentColor)
+                        }
                         
-                        Text("YAN")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                        Text(track.title)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
                             .foregroundColor(.white.opacity(0.85))
+                            .lineLimit(1)
+                            .frame(maxWidth: 140, alignment: .leading)
                         
                         Spacer()
                         
-                        Text("Settings: Double-click")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.50))
+                        Circle()
+                            .fill(track.isPlaying ? Color.green : Color.orange)
+                            .frame(width: 4, height: 4)
                     }
                     .padding(.horizontal, 14)
-                    .padding(.top, 6)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .padding(.top, 7)
+                    .transition(.opacity)
+                }
+                
+                // 4. Expanded State: Full Media Island Pod
+                if isPodExpanded {
+                    if hasActiveMedia, let track = media.currentTrack {
+                        expandedMediaPod(track: track)
+                    } else {
+                        defaultExpandedContent
+                    }
                 }
             }
             .frame(width: currentWidth, height: currentHeight)
@@ -97,7 +129,7 @@ public struct NotchCanvasView: View {
             )
             .onHover { hovering in
                 guard store.preferences.expandOnHover else { return }
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                withAnimation(.spring(response: 0.30, dampingFraction: 0.76)) {
                     isHovered = hovering
                 }
             }
@@ -106,7 +138,7 @@ public struct NotchCanvasView: View {
             }
             .onTapGesture(count: 1) {
                 if store.preferences.expandOnClick {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.76)) {
                         isExpanded.toggle()
                     }
                 }
@@ -131,5 +163,128 @@ public struct NotchCanvasView: View {
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)) { _ in
             isHovered = false
         }
+    }
+    
+    // MARK: - Subviews
+    
+    @ViewBuilder
+    private func expandedMediaPod(track: MediaTrack) -> some View {
+        HStack(spacing: 12) {
+            // Sisi Kiri: Artwork / Video Thumbnail
+            ZStack(alignment: .bottomTrailing) {
+                if let art = track.artwork {
+                    Image(nsImage: art)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 40, height: 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(LinearGradient(colors: [Color.purple.opacity(0.6), Color.blue.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+                        )
+                }
+                
+                if track.mediaType == .video {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 8))
+                        .foregroundColor(.white)
+                        .padding(2)
+                        .background(Color.black.opacity(0.75))
+                        .clipShape(Circle())
+                        .offset(x: 2, y: 2)
+                }
+            }
+            .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+            
+            // Tengah: Track Title, Artist, & Live Synced Lyric
+            VStack(alignment: .leading, spacing: 2) {
+                Text(track.title)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Text(track.artist.isEmpty ? track.sourceApp : track.artist)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.70))
+                    .lineLimit(1)
+                
+                // Baris lirik real-time jika ada lirik yang cocok
+                if let lyric = media.currentLyric, !lyric.isEmpty {
+                    Text("♪ \(lyric)")
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.cyan.opacity(0.90))
+                        .lineLimit(1)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Sisi Kanan: Kontrol Playback (Prev, Play/Pause, Next)
+            HStack(spacing: 8) {
+                Button {
+                    media.previousTrack()
+                } label: {
+                    Image(systemName: "backward.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.85))
+                        .frame(width: 26, height: 26)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                
+                Button {
+                    media.togglePlayPause()
+                } label: {
+                    Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.white.opacity(0.20))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                
+                Button {
+                    media.nextTrack()
+                } label: {
+                    Image(systemName: "forward.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.85))
+                        .frame(width: 26, height: 26)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+    }
+    
+    @ViewBuilder
+    private var defaultExpandedContent: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 5, height: 5)
+            
+            Text("YAN")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.85))
+            
+            Spacer()
+            
+            Text("Settings: Double-click")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.white.opacity(0.50))
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
     }
 }

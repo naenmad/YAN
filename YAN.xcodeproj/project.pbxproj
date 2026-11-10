@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0618BA22829ADFC54BCA2DEB /* MediaManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604205999232AE791CB202FA /* MediaManager.swift */; };
 		16C972AE2E8F229B692C97BA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1046AD56BDABC41EB5F3CFD5 /* SettingsView.swift */; };
+		2B9259AFEC2FEC147B27F0F1 /* MediaRemoteBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5211A44464246B978D40147 /* MediaRemoteBridge.swift */; };
 		2BCE78CE673C2E8E37BFF680 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4AAA02E5B957883F64F8EC /* NotchShape.swift */; };
+		5BADD3359911B5B364A27099 /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B63EE770753CC5C7C7C67 /* LyricsService.swift */; };
 		6CF1202F080E9A543ACC8500 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2500DEEC566B1AFE1B638A /* NotchPanel.swift */; };
 		9CD3200D0D60DABEB07BCE1C /* NotchPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2DA98588750D363758C5F84 /* NotchPreferences.swift */; };
 		A6DF8B722D4C22EEEEDB6952 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FFED4EDD68AC9938485293 /* SettingsWindowController.swift */; };
@@ -16,18 +19,23 @@
 		DD4084284FBD939BDCA05329 /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541990810512B99D2DEBD87C /* GlobalHotkeyManager.swift */; };
 		E7B448C6784C55651DECD906 /* NotchWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76812B184305A12E0C267093 /* NotchWindowManager.swift */; };
 		FA346574E4E7CBD7A0DE8E7F /* NotchCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0115F5AF3BC20A431229E6 /* NotchCanvasView.swift */; };
+		FCE7A1FB1436080FE29F11EC /* MediaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D3ADBD26A0AE2F2831F7401 /* MediaModel.swift */; };
 		FEC0E160A983CA81F62BC117 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1965A558E7201DFCA0594D /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		101B63EE770753CC5C7C7C67 /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
 		1046AD56BDABC41EB5F3CFD5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		10B42479AB39F7030632130E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1A2500DEEC566B1AFE1B638A /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
+		2D3ADBD26A0AE2F2831F7401 /* MediaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaModel.swift; sourceTree = "<group>"; };
 		35FFED4EDD68AC9938485293 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		541990810512B99D2DEBD87C /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
+		604205999232AE791CB202FA /* MediaManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaManager.swift; sourceTree = "<group>"; };
 		76812B184305A12E0C267093 /* NotchWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindowManager.swift; sourceTree = "<group>"; };
 		9C1965A558E7201DFCA0594D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A2DA98588750D363758C5F84 /* NotchPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPreferences.swift; sourceTree = "<group>"; };
+		B5211A44464246B978D40147 /* MediaRemoteBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaRemoteBridge.swift; sourceTree = "<group>"; };
 		CD4AAA02E5B957883F64F8EC /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		D07245998A3766D796853F2E /* YAN.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YAN.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADD96C4556C25E7CDD29692 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -38,6 +46,7 @@
 		3AAA7252F3B23E664F96CAE3 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				2D3ADBD26A0AE2F2831F7401 /* MediaModel.swift */,
 				A2DA98588750D363758C5F84 /* NotchPreferences.swift */,
 			);
 			path = Model;
@@ -76,6 +85,7 @@
 				43B6775C93AF5421A6BA8955 /* App */,
 				8C312A3EB98B3E81F9429520 /* Hotkey */,
 				3AAA7252F3B23E664F96CAE3 /* Model */,
+				F640EA8A604A7F0DEE6A454D /* Service */,
 				ED8684D376FE24CC47CAA5A6 /* UI */,
 				576FFEDE258F82F57430EA4C /* Window */,
 			);
@@ -123,6 +133,16 @@
 				AD8D6D98A9C47EC9B47AABED /* Settings */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		F640EA8A604A7F0DEE6A454D /* Service */ = {
+			isa = PBXGroup;
+			children = (
+				101B63EE770753CC5C7C7C67 /* LyricsService.swift */,
+				604205999232AE791CB202FA /* MediaManager.swift */,
+				B5211A44464246B978D40147 /* MediaRemoteBridge.swift */,
+			);
+			path = Service;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -182,6 +202,10 @@
 			files = (
 				FEC0E160A983CA81F62BC117 /* AppDelegate.swift in Sources */,
 				DD4084284FBD939BDCA05329 /* GlobalHotkeyManager.swift in Sources */,
+				5BADD3359911B5B364A27099 /* LyricsService.swift in Sources */,
+				0618BA22829ADFC54BCA2DEB /* MediaManager.swift in Sources */,
+				FCE7A1FB1436080FE29F11EC /* MediaModel.swift in Sources */,
+				2B9259AFEC2FEC147B27F0F1 /* MediaRemoteBridge.swift in Sources */,
 				FA346574E4E7CBD7A0DE8E7F /* NotchCanvasView.swift in Sources */,
 				6CF1202F080E9A543ACC8500 /* NotchPanel.swift in Sources */,
 				9CD3200D0D60DABEB07BCE1C /* NotchPreferences.swift in Sources */,
