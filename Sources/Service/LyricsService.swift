@@ -8,23 +8,49 @@ public actor LyricsService {
     private init() {}
     
     public func fetchLyrics(artist: String, title: String) async -> [LyricLine] {
-        let cleanTitle = cleanTitleString(title)
-        let cleanArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        let (cleanArtist, cleanTitle) = cleanSearchTerms(artist: artist, title: title)
         let cacheKey = "\(cleanArtist.lowercased()) - \(cleanTitle.lowercased())"
         
-        if let cached = cache[cacheKey] {
+        if let cached = cache[cacheKey], !cached.isEmpty {
             return cached
         }
         
         guard !cleanTitle.isEmpty else { return [] }
         
+        // 1. Coba exact match ke /api/get jika artis tersedia
+        if !cleanArtist.isEmpty {
+            if let lines = await queryGetEndpoint(artist: cleanArtist, title: cleanTitle) {
+                cache[cacheKey] = lines
+                return lines
+            }
+        }
+        
+        // 2. Coba search endpoint /api/search?q=
+        let searchQuery = "\(cleanArtist) \(cleanTitle)".trimmingCharacters(in: .whitespacesAndNewlines)
+        if let lines = await querySearchEndpoint(query: searchQuery) {
+            cache[cacheKey] = lines
+            return lines
+        }
+        
+        // 3. Jika masih gagal, coba search hanya dengan judul lagu
+        if !cleanArtist.isEmpty {
+            if let lines = await querySearchEndpoint(query: cleanTitle) {
+                cache[cacheKey] = lines
+                return lines
+            }
+        }
+        
+        return []
+    }
+    
+    private func queryGetEndpoint(artist: String, title: String) async -> [LyricLine]? {
         var components = URLComponents(string: "https://lrclib.net/api/get")
         components?.queryItems = [
-            URLQueryItem(name: "artist_name", value: cleanArtist),
-            URLQueryItem(name: "track_name", value: cleanTitle)
+            URLQueryItem(name: "artist_name", value: artist),
+            URLQueryItem(name: "track_name", value: title)
         ]
         
-        guard let url = components?.url else { return [] }
+        guard let url = components?.url else { return nil }
         
         do {
             var request = URLRequest(url: url)
@@ -33,38 +59,84 @@ public actor LyricsService {
             
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return []
+                return nil
             }
             
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let synced = json["syncedLyrics"] as? String {
-                let lines = parseLRC(synced)
-                if !lines.isEmpty {
-                    cache[cacheKey] = lines
-                    return lines
-                }
+            return parseLyricsPayload(data)
+        } catch {
+            return nil
+        }
+    }
+    
+    private func querySearchEndpoint(query: String) async -> [LyricLine]? {
+        guard !query.isEmpty else { return nil }
+        var components = URLComponents(string: "https://lrclib.net/api/search")
+        components?.queryItems = [URLQueryItem(name: "q", value: query)]
+        
+        guard let url = components?.url else { return nil }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 4.0
+            request.setValue("YAN-Notch-Utility/0.1.0", forHTTPHeaderField: "User-Agent")
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return nil
             }
             
-            // Fallback ke plain lyrics
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let plain = json["plainLyrics"] as? String {
-                let rawLines = plain.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-                let lines = rawLines.enumerated().map { LyricLine(time: Double($0.offset) * 4.0, text: $0.element) }
-                cache[cacheKey] = lines
-                return lines
+            if let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+               let first = array.first {
+                return parseLyricsDict(first)
             }
         } catch {
-            // Jaringan gagal atau timeout, abaikan
+            return nil
+        }
+        return nil
+    }
+    
+    private func parseLyricsPayload(_ data: Data) -> [LyricLine]? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return parseLyricsDict(json)
+    }
+    
+    private func parseLyricsDict(_ dict: [String: Any]) -> [LyricLine]? {
+        // Prioritas 1: Synced Lyrics (LRC timestamp)
+        if let synced = dict["syncedLyrics"] as? String, !synced.isEmpty {
+            let lines = parseLRC(synced)
+            if !lines.isEmpty {
+                return lines
+            }
         }
         
-        return []
+        // Prioritas 2: Plain Lyrics
+        if let plain = dict["plainLyrics"] as? String, !plain.isEmpty {
+            let rawLines = plain.components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            
+            let lines = rawLines.enumerated().map {
+                LyricLine(time: Double($0.offset) * 4.0, text: $0.element)
+            }
+            if !lines.isEmpty {
+                return lines
+            }
+        }
+        
+        return nil
     }
     
     public func currentLyric(from lines: [LyricLine], at time: TimeInterval) -> String? {
         guard !lines.isEmpty else { return nil }
         
-        // Cari baris lirik dengan timestamp <= waktu saat ini yang paling akhir
-        var activeText: String? = nil
+        // Jika masih di intro sebelum lirik pertama
+        if let first = lines.first, time < first.time {
+            return first.text
+        }
+        
+        var activeText: String? = lines.first?.text
         for line in lines {
             if line.time <= time {
                 activeText = line.text
@@ -105,15 +177,43 @@ public actor LyricsService {
         return result.sorted { $0.time < $1.time }
     }
     
-    private func cleanTitleString(_ title: String) -> String {
-        // Hapus keterangan seperti (Official Video), [Remastered], dll.
-        var cleaned = title
-        if let regex = try? NSRegularExpression(pattern: #"\((?:official|video|audio|lyrics|remastered|feat\.?|ft\.?).*?\)"#, options: .caseInsensitive) {
-            cleaned = regex.stringByReplacingMatches(in: cleaned, range: NSRange(location: 0, length: cleaned.utf16.count), withTemplate: "")
+    private func cleanSearchTerms(artist: String, title: String) -> (artist: String, title: String) {
+        var cleanTitle = title
+        var cleanArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Hapus notification badge seperti "(6) "
+        if let badgeRegex = try? NSRegularExpression(pattern: #"^\(\d+\)\s*"#) {
+            cleanTitle = badgeRegex.stringByReplacingMatches(in: cleanTitle, range: NSRange(location: 0, length: cleanTitle.utf16.count), withTemplate: "")
         }
-        if let regex = try? NSRegularExpression(pattern: #"\[(?:official|video|audio|lyrics|remastered|feat\.?|ft\.?).*?\]"#, options: .caseInsensitive) {
-            cleaned = regex.stringByReplacingMatches(in: cleaned, range: NSRange(location: 0, length: cleaned.utf16.count), withTemplate: "")
+        
+        // Hapus akhiran "- YouTube"
+        if let ytRegex = try? NSRegularExpression(pattern: #"\s*-\s*YouTube$"#, options: .caseInsensitive) {
+            cleanTitle = ytRegex.stringByReplacingMatches(in: cleanTitle, range: NSRange(location: 0, length: cleanTitle.utf16.count), withTemplate: "")
         }
-        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Hapus tag seperti (Official Video), [Official Audio], dll.
+        let tagsPattern = #"(?i)\s*[\(\[][^\)\]]*(?:official|video|audio|lyrics|music|remastered|feat\.?|ft\.?|hd|4k)[^\)\]]*[\)\]]"#
+        if let tagRegex = try? NSRegularExpression(pattern: tagsPattern) {
+            cleanTitle = tagRegex.stringByReplacingMatches(in: cleanTitle, range: NSRange(location: 0, length: cleanTitle.utf16.count), withTemplate: "")
+        }
+        
+        cleanTitle = cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Jika artist adalah placeholder atau kosong, pisahkan jika judul berformat "Artis - Judul"
+        let isGenericArtist = cleanArtist.isEmpty ||
+                              cleanArtist.contains("YouTube") ||
+                              cleanArtist.contains("Media Player") ||
+                              cleanArtist.contains("Browser") ||
+                              cleanArtist.contains("Video")
+        
+        if isGenericArtist && cleanTitle.contains(" - ") {
+            let parts = cleanTitle.components(separatedBy: " - ")
+            if parts.count >= 2 {
+                cleanArtist = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                cleanTitle = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        
+        return (cleanArtist, cleanTitle)
     }
 }

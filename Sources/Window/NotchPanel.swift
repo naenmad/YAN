@@ -8,9 +8,9 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
         let baseWidth = CGFloat(store.preferences.width)
         let baseHeight = CGFloat(store.preferences.height)
         
-        // Bounding box maksimum untuk hit-testing (mencakup batas saat Media Pod expanded)
-        let maxActiveWidth = max(baseWidth * CGFloat(store.preferences.hoverScaleWidth) + 24, 480.0)
-        let maxActiveHeight = max(baseHeight * CGFloat(store.preferences.hoverScaleHeight) + 16, 80.0)
+        // Bounding box maksimum untuk hit-testing (mencakup batas saat Media Pod + Calendar expanded)
+        let maxActiveWidth = max(baseWidth * CGFloat(store.preferences.hoverScaleWidth) + 24, 560.0)
+        let maxActiveHeight = max(baseHeight * CGFloat(store.preferences.hoverScaleHeight) + 16, 85.0)
         
         // Dalam koordinat AppKit view, y = bounds.height adalah bagian paling atas
         let notchRect = NSRect(

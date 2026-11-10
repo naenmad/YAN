@@ -12,6 +12,11 @@ public final class MediaManager: ObservableObject {
     private var lyricTimer: Timer?
     private var fallbackTimer: Timer?
     
+    // Tracking waktu pemutaran real-time
+    private var lastPlaybackTime: TimeInterval = 0
+    private var lastPlaybackTimestamp: Date = Date()
+    private var isTrackPlaying: Bool = false
+    
     private init() {
         startMonitoring()
     }
@@ -34,7 +39,7 @@ public final class MediaManager: ObservableObject {
         RunLoop.main.add(lTimer, forMode: .common)
         self.lyricTimer = lTimer
         
-        // 3. Fallback ringan setiap 2 detik jika stream idle
+        // 3. Fallback ringan setiap 2 detik jika stream belum menangkap
         let fTimer = Timer(timeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkActiveMediaFallback()
@@ -52,6 +57,10 @@ public final class MediaManager: ObservableObject {
             let duration = payload.duration ?? 0
             let elapsedTime = payload.elapsedTime ?? 0
             let isPlaying = payload.playing ?? false
+            
+            self.lastPlaybackTime = elapsedTime
+            self.lastPlaybackTimestamp = Date()
+            self.isTrackPlaying = isPlaying
             
             var artworkImage: NSImage? = nil
             if let b64 = payload.artworkData, let data = Data(base64Encoded: b64) {
@@ -89,31 +98,26 @@ public final class MediaManager: ObservableObject {
             
             self.currentTrack = newTrack
             
-            // Ambil lirik baru jika lagu berganti dan ini adalah musik
-            if !isVideo && (previousTrack?.title != title || previousTrack?.artist != artist) {
+            // Selalu cari lirik untuk semua media yang memiliki judul (baik Apple Music, Spotify, maupun YouTube)
+            if previousTrack?.title != title || previousTrack?.artist != artist {
                 self.activeLyrics = []
                 self.currentLyric = nil
                 
-                if !artist.isEmpty && !title.isEmpty {
-                    Task {
-                        let lyrics = await LyricsService.shared.fetchLyrics(artist: artist, title: title)
-                        await MainActor.run {
-                            self.activeLyrics = lyrics
-                            self.updateActiveLyric()
+                Task {
+                    let lyrics = await LyricsService.shared.fetchLyrics(artist: artist, title: title)
+                    await MainActor.run {
+                        self.activeLyrics = lyrics
+                        if let first = lyrics.first {
+                            self.currentLyric = first.text
                         }
+                        self.updateActiveLyric()
                     }
                 }
-            }
-        } else {
-            // Stream melaporkan idle atau kosong
-            if currentTrack != nil && !(currentTrack?.isPlaying ?? false) {
-                // Biarkan track terakhir tetap tampil beberapa saat dalam mode pause
             }
         }
     }
     
     private func checkActiveMediaFallback() {
-        // Jika stream belum menangkap track tapi ada Apple Music yang aktif berjalan
         guard currentTrack == nil else { return }
         
         let musicApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music")
@@ -154,6 +158,17 @@ public final class MediaManager: ObservableObject {
                                     sourceApp: "Apple Music"
                                 )
                                 self.currentTrack = track
+                                self.lastPlaybackTime = track.elapsedTime
+                                self.lastPlaybackTimestamp = Date()
+                                self.isTrackPlaying = true
+                                
+                                Task {
+                                    let lyrics = await LyricsService.shared.fetchLyrics(artist: parts[1], title: parts[0])
+                                    await MainActor.run {
+                                        self.activeLyrics = lyrics
+                                        self.updateActiveLyric()
+                                    }
+                                }
                             }
                         }
                     }
@@ -163,14 +178,11 @@ public final class MediaManager: ObservableObject {
     }
     
     private func updateActiveLyric() {
-        guard let track = currentTrack, !activeLyrics.isEmpty else {
-            if currentLyric != nil {
-                currentLyric = nil
-            }
-            return
-        }
+        guard !activeLyrics.isEmpty else { return }
         
-        let currentPos = track.elapsedTime
+        let elapsedSince = isTrackPlaying ? Date().timeIntervalSince(lastPlaybackTimestamp) : 0
+        let currentPos = max(0, lastPlaybackTime + elapsedSince)
+        
         Task {
             if let lyric = await LyricsService.shared.currentLyric(from: activeLyrics, at: currentPos) {
                 await MainActor.run {
@@ -183,6 +195,8 @@ public final class MediaManager: ObservableObject {
     public func togglePlayPause() {
         MediaRemoteBridge.shared.togglePlayPause()
         currentTrack?.isPlaying.toggle()
+        isTrackPlaying.toggle()
+        lastPlaybackTimestamp = Date()
     }
     
     public func nextTrack() {
