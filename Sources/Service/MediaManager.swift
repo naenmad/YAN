@@ -248,4 +248,33 @@ public final class MediaManager: ObservableObject {
     public func previousTrack() {
         MediaRemoteBridge.shared.previousTrack()
     }
+    
+    public func seek(to seconds: Double) {
+        let clamped = max(0, seconds)
+        lastPlaybackTime = clamped
+        lastPlaybackTimestamp = Date()
+        currentTrack?.elapsedTime = clamped
+        
+        MediaRemoteBridge.shared.seek(to: clamped)
+        
+        let musicApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music")
+        if !musicApps.isEmpty {
+            DispatchQueue.global(qos: .userInitiated).async {
+                let script = "tell application \"Music\" to set player position to \(clamped)"
+                var err: NSDictionary?
+                NSAppleScript(source: script)?.executeAndReturnError(&err)
+            }
+        }
+        
+        let spotifyApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client")
+        if !spotifyApps.isEmpty {
+            DispatchQueue.global(qos: .userInitiated).async {
+                let script = "tell application \"Spotify\" to set player position to \(clamped)"
+                var err: NSDictionary?
+                NSAppleScript(source: script)?.executeAndReturnError(&err)
+            }
+        }
+        
+        updateActiveLyric()
+    }
 }

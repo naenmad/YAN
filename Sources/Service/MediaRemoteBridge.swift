@@ -48,9 +48,11 @@ public final class MediaRemoteBridge {
     private var stdoutPipe: Pipe?
     private var buffer = Data()
     
-    // Direct C function for instant 0ms command execution
+    // Direct C function for instant 0ms command execution & seeking
     private typealias MRSendCommandFunc = @convention(c) (Int32, AnyObject?) -> Bool
+    private typealias MRSetElapsedTimeFunc = @convention(c) (Double) -> Void
     private var directSendCommand: MRSendCommandFunc?
+    private var directSetElapsedTime: MRSetElapsedTimeFunc?
     
     public var onNowPlayingUpdate: ((NowPlayingPayload) -> Void)?
     
@@ -59,9 +61,13 @@ public final class MediaRemoteBridge {
     }
     
     private func setupDirectCommands() {
-        if let handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_NOW),
-           let sym = dlsym(handle, "MRMediaRemoteSendCommand") {
-            directSendCommand = unsafeBitCast(sym, to: MRSendCommandFunc.self)
+        if let handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_NOW) {
+            if let sym = dlsym(handle, "MRMediaRemoteSendCommand") {
+                directSendCommand = unsafeBitCast(sym, to: MRSendCommandFunc.self)
+            }
+            if let sym = dlsym(handle, "MRMediaRemoteSetElapsedTime") {
+                directSetElapsedTime = unsafeBitCast(sym, to: MRSetElapsedTimeFunc.self)
+            }
         }
     }
     
@@ -173,6 +179,24 @@ public final class MediaRemoteBridge {
     public func previousTrack() {
         if directSendCommand?(5, nil) != true {
             executeFallbackCommand(id: 5)
+        }
+    }
+    
+    public func seek(to seconds: Double) {
+        if let setTime = directSetElapsedTime {
+            setTime(seconds)
+        }
+        let micros = Int64(seconds * 1_000_000)
+        executeFallbackSeek(micros: micros)
+    }
+    
+    private func executeFallbackSeek(micros: Int64) {
+        guard let (scriptURL, frameworkURL) = resolveAdapterPaths() else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+            proc.arguments = [scriptURL.path, frameworkURL.path, "seek", "\(micros)"]
+            try? proc.run()
         }
     }
     
