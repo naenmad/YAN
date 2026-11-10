@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - Interactive Media Scrubber (Drag & Drop / Click to Seek)
 
@@ -98,12 +99,24 @@ struct MediaScrubberView: View {
 
 // MARK: - NotchCanvasView
 
+public enum NotchPage: Int, CaseIterable {
+    case dashboard = 0 // Media Player + Calendar & Schedule
+    case dropZone = 1  // AirDrop Target + Temporary Stash Shelf
+}
+
 public struct NotchCanvasView: View {
     @ObservedObject var store: NotchSettingsStore = .shared
     @ObservedObject var media: MediaManager = .shared
+    @ObservedObject var shelf: ShelfManager = .shared
     
     @State private var isHovered: Bool = false
     @State private var isExpanded: Bool = false
+    @State private var activePage: NotchPage = .dashboard
+    
+    // Automatic collapse monitoring & file drag targeting
+    @State private var outsideClickMonitor: Any? = nil
+    @State private var outsideLocalMonitor: Any? = nil
+    @State private var isGlobalDragTargeted: Bool = false
     
     private var hasActiveMedia: Bool {
         return media.currentTrack != nil && media.currentTrack!.isValid
@@ -303,9 +316,103 @@ public struct NotchCanvasView: View {
             isHovered = false
             isExpanded = false
         }
+        .onChange(of: isExpanded) { expanded in
+            if expanded {
+                startOutsideClickMonitoring()
+            } else {
+                stopOutsideClickMonitoring()
+            }
+        }
+        .onDisappear {
+            stopOutsideClickMonitoring()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            if isExpanded {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                    isExpanded = false
+                }
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isGlobalDragTargeted) { providers in
+            shelf.extractURLs(from: providers) { urls in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    shelf.addItems(urls: urls)
+                }
+            }
+            return true
+        }
+        .onChange(of: isGlobalDragTargeted) { targeted in
+            if targeted {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                    isExpanded = true
+                    activePage = .dropZone
+                }
+            }
+        }
     }
     
-    // MARK: - Large Unified Content (Mode Clicked / Expanded Dashboard)
+    // MARK: - Outside Click Handling
+    
+    private func startOutsideClickMonitoring() {
+        stopOutsideClickMonitoring()
+        
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
+            handleOutsideClick(event: event)
+        }
+        
+        outsideLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
+            handleOutsideClick(event: event)
+            return event
+        }
+    }
+    
+    private func stopOutsideClickMonitoring() {
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
+        }
+        if let monitor = outsideLocalMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideLocalMonitor = nil
+        }
+    }
+    
+    private func handleOutsideClick(event: NSEvent) {
+        guard isExpanded else { return }
+        
+        let clickPoint = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(clickPoint) } ?? NSScreen.main ?? NSScreen.screens.first
+        guard let targetScreen = screen else {
+            collapseNotch()
+            return
+        }
+        
+        let screenFrame = targetScreen.frame
+        let currentW = CGFloat(store.preferences.clickedWidth)
+        let currentH = CGFloat(store.preferences.clickedHeight)
+        
+        // Notch area at the top center of the screen (with 12pt safety buffer)
+        let notchRect = NSRect(
+            x: screenFrame.midX - (currentW / 2) - 12,
+            y: screenFrame.maxY - currentH - 12,
+            width: currentW + 24,
+            height: currentH + 24
+        )
+        
+        if !notchRect.contains(clickPoint) {
+            DispatchQueue.main.async {
+                self.collapseNotch()
+            }
+        }
+    }
+    
+    private func collapseNotch() {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            isExpanded = false
+        }
+    }
+    
+    // MARK: - Large Unified Content (Mode Clicked / Expanded)
     
     @ViewBuilder
     private var largeUnifiedContent: some View {
@@ -314,24 +421,67 @@ public struct NotchCanvasView: View {
         let availableW = max(360.0, currentW - 53) // padding 28 + spacing 24 + divider 1
         let leftWidth = max(230.0, availableW * 0.54)
         let rightWidth = max(190.0, availableW - leftWidth)
-        let dividerHeight = max(70.0, currentH - 34)
+        let dividerHeight = max(55.0, currentH - 58)
         
-        HStack(spacing: 12) {
-            // SISI KIRI: Media Player Seimbang + Scrubber Slider + Kontrol Terpusat + Lirik 3 Baris
-            unifiedMediaPlayerSection
-                .frame(width: leftWidth)
-            
-            // DIVIDER TENGAH
-            Rectangle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 1, height: dividerHeight)
-            
-            // SISI KANAN: 1-Row Week Calendar + Schedule + Month Switcher
-            ZStack(alignment: .topTrailing) {
-                NotchCalendarView(isLarge: true)
-                    .frame(width: rightWidth)
+        VStack(spacing: 6) {
+            // Header Bar: Page Switcher Capsule + Collapse Chevron
+            HStack(spacing: 8) {
+                // Page Switcher Capsule
+                HStack(spacing: 2) {
+                    Button {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                            activePage = .dashboard
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.grid.2x2.fill")
+                                .font(.system(size: 8))
+                            Text("Dashboard")
+                                .font(.system(size: 8.5, weight: .semibold))
+                        }
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(activePage == .dashboard ? Color.white.opacity(0.18) : Color.clear)
+                        .foregroundColor(activePage == .dashboard ? .white : .white.opacity(0.45))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                            activePage = .dropZone
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "tray.and.arrow.down.fill")
+                                .font(.system(size: 8))
+                            Text("Drop Zone")
+                                .font(.system(size: 8.5, weight: .semibold))
+                            if !shelf.items.isEmpty {
+                                Text("\(shelf.items.count)")
+                                    .font(.system(size: 7.5, weight: .bold))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 4.5)
+                                    .padding(.vertical, 0.5)
+                                    .background(Color.cyan)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(activePage == .dropZone ? Color.cyan.opacity(0.25) : Color.clear)
+                        .foregroundColor(activePage == .dropZone ? .cyan : .white.opacity(0.45))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(2)
+                .background(Color.white.opacity(0.06))
+                .clipShape(Capsule())
                 
-                // Tombol collapse di pojok kanan atas
+                Spacer()
+                
+                // Collapse button
                 Button {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                         isExpanded = false
@@ -340,17 +490,36 @@ public struct NotchCanvasView: View {
                     Image(systemName: "chevron.up")
                         .font(.system(size: 8.5, weight: .bold))
                         .foregroundColor(.white.opacity(0.50))
-                        .frame(width: 17, height: 17)
-                        .background(Color.white.opacity(0.10))
+                        .frame(width: 18, height: 18)
+                        .background(Color.white.opacity(0.08))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .offset(x: 2, y: -4)
                 .help("Collapse Notch")
             }
+            .padding(.horizontal, 14)
+            .padding(.top, 4)
+            
+            // Page Body Content
+            if activePage == .dashboard {
+                HStack(spacing: 12) {
+                    unifiedMediaPlayerSection
+                        .frame(width: leftWidth)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: 1, height: dividerHeight)
+                    
+                    NotchCalendarView(isLarge: true)
+                        .frame(width: rightWidth)
+                }
+                .padding(.horizontal, 14)
+                .transition(.opacity)
+            } else {
+                NotchDropZoneView()
+                    .transition(.opacity)
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
     }
     
     // MARK: - Unified Media Player Section
@@ -686,10 +855,49 @@ public struct NotchCanvasView: View {
     @ViewBuilder
     private var compactHoverContent: some View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
-        let topPad = max(6.0, (hoverH - 38.0) / 2.0)
-        let dividerH = max(22.0, hoverH - 20.0)
+        let topPad = max(4.0, (hoverH - 40.0) / 2.0)
         
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
+            if activePage == .dashboard {
+                compactDashboardGlance
+                    .transition(.opacity)
+            } else {
+                NotchCompactDropZoneView()
+                    .transition(.opacity)
+            }
+            
+            // Hover Page Switcher Button
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    activePage = (activePage == .dashboard ? .dropZone : .dashboard)
+                }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(activePage == .dropZone ? Color.cyan.opacity(0.20) : Color.white.opacity(0.08))
+                        .frame(width: 22, height: 22)
+                    
+                    Image(systemName: activePage == .dashboard ? "tray.and.arrow.down" : "square.grid.2x2")
+                        .font(.system(size: 9.5, weight: .bold))
+                        .foregroundColor(activePage == .dropZone ? .cyan : .white.opacity(0.70))
+                }
+            }
+            .buttonStyle(.plain)
+            .help(activePage == .dashboard ? "Switch to Drop Zone" : "Switch to Dashboard")
+            .padding(.trailing, 6)
+        }
+        .padding(.leading, 10)
+        .padding(.top, topPad)
+    }
+    
+    // MARK: - Compact Dashboard Glance (Hover Page 1)
+    
+    @ViewBuilder
+    private var compactDashboardGlance: some View {
+        let hoverH = CGFloat(store.preferences.hoverHeight)
+        let dividerH = max(20.0, hoverH - 22.0)
+        
+        HStack(spacing: 10) {
             if hasActiveMedia, let track = media.currentTrack {
                 // SISI KIRI: Compact Media (Lebar ~300pt)
                 HStack(spacing: 9) {
@@ -834,7 +1042,5 @@ public struct NotchCanvasView: View {
             NotchCalendarView(isLarge: false)
                 .frame(width: 170)
         }
-        .padding(.horizontal, 14)
-        .padding(.top, topPad)
     }
 }
