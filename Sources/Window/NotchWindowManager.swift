@@ -36,17 +36,39 @@ public final class NotchWindowManager {
             .store(in: &cancellables)
     }
     
+    private func resolveTargetScreens() -> [NSScreen] {
+        let store = NotchSettingsStore.shared
+        let allScreens = NSScreen.screens
+        
+        guard !allScreens.isEmpty else { return [] }
+        
+        // Cari MacBook Built-in Display (layar bawaan MacBook Air)
+        let builtInScreen = allScreens.first(where: {
+            $0.localizedName.localizedCaseInsensitiveContains("built-in") ||
+            ($0.frame.origin.x == 0 && $0.frame.origin.y == 0)
+        }) ?? allScreens.first!
+        
+        switch store.preferences.displayTarget {
+        case .builtIn:
+            return [builtInScreen]
+            
+        case .external:
+            let externals = allScreens.filter { $0 != builtInScreen }
+            return externals.isEmpty ? [builtInScreen] : externals
+            
+        case .all:
+            return allScreens
+        }
+    }
+    
     public func refreshPanels() {
-        // Tutup panel yang sudah ada
         for panel in panels {
             panel.orderOut(nil)
         }
         panels.removeAll()
         
-        let store = NotchSettingsStore.shared
-        let screens = store.preferences.multiMonitorEnabled ? NSScreen.screens : [NSScreen.main].compactMap { $0 }
-        
-        for screen in screens {
+        let targetScreens = resolveTargetScreens()
+        for screen in targetScreens {
             let panel = NotchPanel(screen: screen)
             panel.orderFrontRegardless()
             panels.append(panel)
@@ -54,17 +76,16 @@ public final class NotchWindowManager {
     }
     
     public func updateAllPanels() {
-        let store = NotchSettingsStore.shared
-        let screens = store.preferences.multiMonitorEnabled ? NSScreen.screens : [NSScreen.main].compactMap { $0 }
+        let targetScreens = resolveTargetScreens()
         
-        if screens.count != panels.count {
+        if targetScreens.count != panels.count {
             refreshPanels()
             return
         }
         
         for (index, panel) in panels.enumerated() {
-            if index < screens.count {
-                panel.setTargetScreen(screens[index])
+            if index < targetScreens.count {
+                panel.setTargetScreen(targetScreens[index])
             }
         }
     }

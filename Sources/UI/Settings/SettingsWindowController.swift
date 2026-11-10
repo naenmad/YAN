@@ -12,9 +12,11 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
     
     public func show() {
+        NSApp.setActivationPolicy(.regular)
+        
         if let existing = window {
             existing.makeKeyAndOrderFront(nil)
-            NSApplication.shared.activate(ignoringOtherApps: true)
+            NSApp.activate(ignoringOtherApps: true)
             return
         }
         
@@ -22,28 +24,30 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: settingsView)
         
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 500),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 480),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         
-        newWindow.title = "YAN Settings"
+        newWindow.title = "Pengaturan YAN"
         newWindow.contentView = hostingView
+        newWindow.minSize = NSSize(width: 580, height: 400)
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self
         
         self.window = newWindow
         newWindow.makeKeyAndOrderFront(nil)
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     public func close() {
         window?.orderOut(nil)
+        NSApp.setActivationPolicy(.accessory)
     }
     
     public func windowWillClose(_ notification: Notification) {
-        // window is kept alive for quick re-opening
+        NSApp.setActivationPolicy(.accessory)
     }
 }

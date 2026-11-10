@@ -1,6 +1,22 @@
 import Foundation
 import SwiftUI
 
+public enum DisplayTarget: String, Codable, CaseIterable, Identifiable {
+    case builtIn = "builtin"
+    case all = "all"
+    case external = "external"
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .builtIn: return "Layar Bawaan MacBook"
+        case .all: return "Semua Layar"
+        case .external: return "Monitor Eksternal"
+        }
+    }
+}
+
 public struct NotchPreferences: Codable, Equatable {
     public var width: Double = 180.0
     public var height: Double = 32.0
@@ -13,7 +29,7 @@ public struct NotchPreferences: Codable, Equatable {
     public var hoverScaleHeight: Double = 1.50
     
     public var showInFullScreen: Bool = true
-    public var multiMonitorEnabled: Bool = false
+    public var displayTarget: DisplayTarget = .builtIn
     
     public static let `default` = NotchPreferences()
 }
@@ -33,7 +49,11 @@ public final class NotchSettingsStore: ObservableObject {
     private init() {
         if let data = UserDefaults.standard.data(forKey: defaultsKey),
            let decoded = try? JSONDecoder().decode(NotchPreferences.self, from: data) {
-            self.preferences = decoded
+            var loaded = decoded
+            if loaded.width < 140 {
+                loaded.width = 180.0
+            }
+            self.preferences = loaded
         } else {
             self.preferences = .default
         }

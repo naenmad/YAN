@@ -6,7 +6,6 @@ public struct NotchCanvasView: View {
     @State private var isHovered: Bool = false
     @State private var isExpanded: Bool = false
     
-    // Callback untuk memberitahu panel agar resize window bounds jika perlu
     public var onSizeChange: ((CGSize) -> Void)?
     
     private var currentWidth: CGFloat {
@@ -67,7 +66,7 @@ public struct NotchCanvasView: View {
                     
                     Spacer()
                     
-                    Text("Settings: 2x Click")
+                    Text("Pengaturan: 2x Klik")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(.white.opacity(0.5))
                 }
@@ -100,15 +99,15 @@ public struct NotchCanvasView: View {
             }
         }
         .contextMenu {
-            Button("Settings...") {
+            Button("Pengaturan...") {
                 SettingsWindowController.shared.show()
             }
             Divider()
-            Button("Reset to Defaults") {
+            Button("Reset ke Pengaturan Awal") {
                 store.resetToDefaults()
             }
             Divider()
-            Button("Quit YAN") {
+            Button("Keluar dari YAN") {
                 NSApplication.shared.terminate(nil)
             }
         }
