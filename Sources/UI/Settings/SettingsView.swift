@@ -298,6 +298,28 @@ private struct InteractionCategoryView: View {
                 .padding(14)
             }
             
+            // Normal State (Resting) Media Display
+            GroupBox(label: Text("Normal State (Resting) Display").font(.subheadline.weight(.semibold))) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Choose what to display in the compact resting notch when audio or video is playing:")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    
+                    Picker("", selection: $store.preferences.normalStateMediaDisplay) {
+                        ForEach(NormalStateMediaDisplay.allCases) { item in
+                            Text(item.label).tag(item)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    
+                    Text(normalStateDescription(for: store.preferences.normalStateMediaDisplay))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(14)
+            }
+            
             if (store.preferences.expandOnHover || store.preferences.expandOnClick) && !store.preferences.lockHeightOnHover {
                 GroupBox(label: Text("Expansion Scaling").font(.subheadline.weight(.semibold))) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -330,6 +352,17 @@ private struct InteractionCategoryView: View {
                     .padding(14)
                 }
             }
+        }
+    }
+    
+    private func normalStateDescription(for mode: NormalStateMediaDisplay) -> String {
+        switch mode {
+        case .songTitle:
+            return "Shows album artwork, track title, and active playback indicator in the resting notch."
+        case .lyrics:
+            return "Displays live synchronized karaoke lyrics in real-time right inside the resting notch."
+        case .empty:
+            return "Keeps the resting notch completely black and stealthy with zero text or icons."
         }
     }
 }

@@ -87,6 +87,22 @@ public enum DisplayTarget: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+public enum NormalStateMediaDisplay: String, Codable, CaseIterable, Identifiable {
+    case songTitle = "title"
+    case lyrics = "lyrics"
+    case empty = "empty"
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .songTitle: return "Song Title"
+        case .lyrics: return "Live Lyrics"
+        case .empty: return "Empty (Minimal)"
+        }
+    }
+}
+
 public struct NotchPreferences: Codable, Equatable {
     public var widthPreset: WidthPreset = .standard
     public var heightPreset: HeightPreset = .menuBar
@@ -108,8 +124,42 @@ public struct NotchPreferences: Codable, Equatable {
     
     public var showInFullScreen: Bool = true
     public var displayTarget: DisplayTarget = .builtIn
+    public var normalStateMediaDisplay: NormalStateMediaDisplay = .songTitle
     
     public static let `default` = NotchPreferences()
+    
+    enum CodingKeys: String, CodingKey {
+        case widthPreset, heightPreset, notchStyle
+        case width, height, cornerRadius, earRadius
+        case showOutline, outlineOpacity
+        case expandOnHover, expandOnClick, lockHeightOnHover
+        case hoverScaleWidth, hoverScaleHeight
+        case showInFullScreen, displayTarget
+        case normalStateMediaDisplay
+    }
+    
+    public init() {}
+    
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        widthPreset = try c.decodeIfPresent(WidthPreset.self, forKey: .widthPreset) ?? .standard
+        heightPreset = try c.decodeIfPresent(HeightPreset.self, forKey: .heightPreset) ?? .menuBar
+        notchStyle = try c.decodeIfPresent(NotchStyle.self, forKey: .notchStyle) ?? .apple
+        width = try c.decodeIfPresent(Double.self, forKey: .width) ?? 200.0
+        height = try c.decodeIfPresent(Double.self, forKey: .height) ?? 30.0
+        cornerRadius = try c.decodeIfPresent(Double.self, forKey: .cornerRadius) ?? 14.0
+        earRadius = try c.decodeIfPresent(Double.self, forKey: .earRadius) ?? 6.0
+        showOutline = try c.decodeIfPresent(Bool.self, forKey: .showOutline) ?? true
+        outlineOpacity = try c.decodeIfPresent(Double.self, forKey: .outlineOpacity) ?? 0.12
+        expandOnHover = try c.decodeIfPresent(Bool.self, forKey: .expandOnHover) ?? true
+        expandOnClick = try c.decodeIfPresent(Bool.self, forKey: .expandOnClick) ?? true
+        lockHeightOnHover = try c.decodeIfPresent(Bool.self, forKey: .lockHeightOnHover) ?? false
+        hoverScaleWidth = try c.decodeIfPresent(Double.self, forKey: .hoverScaleWidth) ?? 1.25
+        hoverScaleHeight = try c.decodeIfPresent(Double.self, forKey: .hoverScaleHeight) ?? 1.15
+        showInFullScreen = try c.decodeIfPresent(Bool.self, forKey: .showInFullScreen) ?? true
+        displayTarget = try c.decodeIfPresent(DisplayTarget.self, forKey: .displayTarget) ?? .builtIn
+        normalStateMediaDisplay = try c.decodeIfPresent(NormalStateMediaDisplay.self, forKey: .normalStateMediaDisplay) ?? .songTitle
+    }
     
     public mutating func updateRadiiForCurrentStyle() {
         switch notchStyle {
