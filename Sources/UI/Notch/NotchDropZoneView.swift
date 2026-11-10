@@ -54,19 +54,24 @@ public struct NotchDropZoneView: View {
                             )
                     )
                 
-                // Ikon AirDrop Asli macOS (Ukuran seimbang 28x28 di dalam lingkaran 50x50)
-                ZStack {
-                    Circle()
-                        .fill(isAirDropHovered ? Color.cyan.opacity(0.22) : Color.white.opacity(0.06))
-                        .frame(width: 50, height: 50)
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(isAirDropHovered ? Color.cyan.opacity(0.22) : Color.white.opacity(0.06))
+                            .frame(width: 48, height: 48)
+                        
+                        Image(nsImage: ShelfManager.airDropIcon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 28, height: 28)
+                            .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                    }
                     
-                    Image(nsImage: ShelfManager.airDropIcon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
-                        .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                    Text("AirDrop")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundColor(isAirDropHovered ? .cyan : .white.opacity(0.70))
                 }
-                .scaleEffect(isAirDropHovered ? 1.08 : 1.0)
+                .scaleEffect(isAirDropHovered ? 1.06 : 1.0)
             }
             .contentShape(Rectangle())
         }
@@ -85,7 +90,7 @@ public struct NotchDropZoneView: View {
     private var shelfSection: some View {
         Group {
             if shelf.items.isEmpty {
-                // Empty Drop Box: Ikon Simpan Minimalis di Tengah (Ukuran seimbang 28x28 di dalam lingkaran 50x50)
+                // Empty Drop Box: Ikon Simpan Minimalis + Tulisan "Temporary"
                 ZStack {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(isShelfHovered ? Color.cyan.opacity(0.16) : Color.white.opacity(0.04))
@@ -97,16 +102,22 @@ public struct NotchDropZoneView: View {
                                 )
                         )
                     
-                    ZStack {
-                        Circle()
-                            .fill(isShelfHovered ? Color.cyan.opacity(0.22) : Color.white.opacity(0.06))
-                            .frame(width: 50, height: 50)
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(isShelfHovered ? Color.cyan.opacity(0.22) : Color.white.opacity(0.06))
+                                .frame(width: 48, height: 48)
+                            
+                            Image(systemName: "tray.and.arrow.down")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
+                        }
                         
-                        Image(systemName: "tray.and.arrow.down")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
+                        Text("Temporary")
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.70))
                     }
-                    .scaleEffect(isShelfHovered ? 1.08 : 1.0)
+                    .scaleEffect(isShelfHovered ? 1.06 : 1.0)
                 }
                 .contentShape(Rectangle())
                 .onDrop(of: [.fileURL], isTargeted: $isShelfHovered) { providers in
@@ -259,11 +270,17 @@ public struct NotchCompactDropZoneView: View {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(isAirDropHovered ? Color.cyan.opacity(0.20) : Color.white.opacity(0.05))
                         
-                        Image(nsImage: ShelfManager.airDropIcon)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 18, height: 18)
-                            .scaleEffect(isAirDropHovered ? 1.10 : 1.0)
+                        VStack(spacing: 2) {
+                            Image(nsImage: ShelfManager.airDropIcon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 16, height: 16)
+                            
+                            Text("AirDrop")
+                                .font(.system(size: 7.5, weight: .semibold, design: .rounded))
+                                .foregroundColor(isAirDropHovered ? .cyan : .white.opacity(0.65))
+                        }
+                        .scaleEffect(isAirDropHovered ? 1.06 : 1.0)
                     }
                     .frame(width: airdropSize, height: airdropSize)
                     .contentShape(Rectangle())
@@ -287,19 +304,25 @@ public struct NotchCompactDropZoneView: View {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(isShelfHovered ? Color.cyan.opacity(0.20) : Color.white.opacity(0.05))
                     
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "tray.and.arrow.down")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
-                            .scaleEffect(isShelfHovered ? 1.10 : 1.0)
-                        
-                        if !shelf.items.isEmpty {
-                            Circle()
-                                .fill(Color.cyan)
-                                .frame(width: 5, height: 5)
-                                .offset(x: 4, y: -2)
+                    VStack(spacing: 2) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "tray.and.arrow.down")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
+                            
+                            if !shelf.items.isEmpty {
+                                Circle()
+                                    .fill(Color.cyan)
+                                    .frame(width: 4.5, height: 4.5)
+                                    .offset(x: 4, y: -2)
+                            }
                         }
+                        
+                        Text("Temporary")
+                            .font(.system(size: 7.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.65))
                     }
+                    .scaleEffect(isShelfHovered ? 1.06 : 1.0)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
