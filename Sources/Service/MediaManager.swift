@@ -17,6 +17,11 @@ public final class MediaManager: ObservableObject {
     private var lastPlaybackTimestamp: Date = Date()
     private var isTrackPlaying: Bool = false
     
+    public var currentPlaybackPosition: TimeInterval {
+        let elapsedSince = isTrackPlaying ? Date().timeIntervalSince(lastPlaybackTimestamp) : 0
+        return max(0, lastPlaybackTime + elapsedSince)
+    }
+    
     private init() {
         startMonitoring()
     }

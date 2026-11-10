@@ -8,9 +8,9 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
         let baseWidth = CGFloat(store.preferences.width)
         let baseHeight = CGFloat(store.preferences.height)
         
-        // Bounding box maksimum untuk hit-testing (mencakup batas saat Media Pod + Calendar expanded)
-        let maxActiveWidth = max(baseWidth * CGFloat(store.preferences.hoverScaleWidth) + 24, 560.0)
-        let maxActiveHeight = max(baseHeight * CGFloat(store.preferences.hoverScaleHeight) + 16, 85.0)
+        // Bounding box maksimum untuk hit-testing (mencakup batas saat Media Pod + Calendar expanded hingga 150pt tinggi)
+        let maxActiveWidth = max(baseWidth * CGFloat(store.preferences.hoverScaleWidth) + 30, 580.0)
+        let maxActiveHeight = max(baseHeight * CGFloat(store.preferences.hoverScaleHeight) + 20, 160.0)
         
         // Dalam koordinat AppKit view, y = bounds.height adalah bagian paling atas
         let notchRect = NSRect(
@@ -33,9 +33,9 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
 public final class NotchPanel: NSPanel {
     private var targetScreen: NSScreen
     
-    // Dimensi kanvas jendela overlay yang luas agar animasi ekspansi leluasa tanpa resize window
-    private let windowWidth: CGFloat = 580.0
-    private let windowHeight: CGFloat = 160.0
+    // Dimensi kanvas jendela overlay yang luas (620x180) agar animasi ekspansi leluasa tanpa resize window
+    private let windowWidth: CGFloat = 620.0
+    private let windowHeight: CGFloat = 180.0
     
     public init(screen: NSScreen) {
         self.targetScreen = screen

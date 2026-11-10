@@ -101,7 +101,7 @@ public struct NotchPreferences: Codable, Equatable {
     public var outlineOpacity: Double = 0.12 // Sangat halus (hint doang: 12% opacity, hairline 0.5pt)
     
     public var expandOnHover: Bool = true
-    public var expandOnClick: Bool = false
+    public var expandOnClick: Bool = true
     public var lockHeightOnHover: Bool = false
     public var hoverScaleWidth: Double = 1.25
     public var hoverScaleHeight: Double = 1.15
@@ -155,6 +155,7 @@ public final class NotchSettingsStore: ObservableObject {
             if loaded.outlineOpacity == 0 || loaded.outlineOpacity > 0.20 {
                 loaded.outlineOpacity = 0.12
             }
+            loaded.expandOnClick = true
             loaded.updateRadiiForCurrentStyle()
             self.preferences = loaded
         } else {
