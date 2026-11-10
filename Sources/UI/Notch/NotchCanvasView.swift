@@ -16,7 +16,6 @@ public struct NotchCanvasView: View {
     
     private var currentHeight: CGFloat {
         let base = CGFloat(store.preferences.height)
-        // Jika dikunci, tinggi notch tidak pernah bertambah ke bawah saat hover
         if store.preferences.lockHeightOnHover {
             return base
         }
@@ -39,15 +38,35 @@ public struct NotchCanvasView: View {
     public var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                // Siluet Notch Utama
+                // 1. Solid Black Notch Body
                 NotchShape(
                     cornerRadius: activeCornerRadius,
                     earRadius: CGFloat(store.preferences.earRadius)
                 )
                 .fill(Color.black)
-                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.35 : 0.0), radius: 10, x: 0, y: 5)
+                .shadow(color: Color.black.opacity(isHovered || isExpanded ? 0.40 : 0.0), radius: 10, x: 0, y: 5)
                 
-                // Konten Notch saat Mode Terbuka (Hover / Expanded)
+                // 2. Visible Outline Border (Keeps notch visible on black full-screen menu bars)
+                if store.preferences.showOutline {
+                    NotchBorderShape(
+                        cornerRadius: activeCornerRadius,
+                        earRadius: CGFloat(store.preferences.earRadius)
+                    )
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.40),
+                                Color.white.opacity(0.22),
+                                Color.white.opacity(0.40)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.0
+                    )
+                }
+                
+                // 3. Content shown when expanded
                 if (store.preferences.expandOnHover && isHovered) || isExpanded {
                     HStack(spacing: 8) {
                         Circle()
@@ -56,13 +75,13 @@ public struct NotchCanvasView: View {
                         
                         Text("YAN")
                             .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(.white.opacity(0.90))
                         
                         Spacer()
                         
-                        Text("Pengaturan: 2x Klik")
+                        Text("Settings: Double-click")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.45))
+                            .foregroundColor(.white.opacity(0.55))
                     }
                     .padding(.horizontal, 14)
                     .padding(.top, 6)
@@ -93,15 +112,15 @@ public struct NotchCanvasView: View {
                 }
             }
             .contextMenu {
-                Button("Pengaturan...") {
+                Button("Settings...") {
                     SettingsWindowController.shared.show()
                 }
                 Divider()
-                Button("Reset ke Pengaturan Awal") {
+                Button("Reset to Defaults") {
                     store.resetToDefaults()
                 }
                 Divider()
-                Button("Keluar dari YAN") {
+                Button("Quit YAN") {
                     NSApplication.shared.terminate(nil)
                 }
             }
@@ -110,7 +129,6 @@ public struct NotchCanvasView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)) { _ in
-            // Saat berpindah Desktop Space atau masuk ke full screen, reset hover agar tidak macet di posisi mengembang
             isHovered = false
         }
     }

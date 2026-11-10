@@ -11,10 +11,10 @@ public enum HeightPreset: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .compact: return "Kompak (26)"
+        case .compact: return "Compact (26)"
         case .menuBar: return "Menu Bar (30)"
-        case .tall: return "Besar (36)"
-        case .custom: return "Kustom"
+        case .tall: return "Tall (36)"
+        case .custom: return "Custom"
         }
     }
     
@@ -38,10 +38,10 @@ public enum WidthPreset: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .compact: return "Kompak (160)"
-        case .standard: return "Standar (200)"
-        case .wide: return "Lebar (260)"
-        case .custom: return "Kustom"
+        case .compact: return "Compact (160)"
+        case .standard: return "Standard (200)"
+        case .wide: return "Wide (260)"
+        case .custom: return "Custom"
         }
     }
     
@@ -64,9 +64,9 @@ public enum NotchStyle: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .apple: return "Notch Apple"
-        case .capsule: return "Kapsul"
-        case .subtle: return "Minimalis"
+        case .apple: return "Apple Notch"
+        case .capsule: return "Capsule"
+        case .subtle: return "Subtle"
         }
     }
 }
@@ -80,9 +80,9 @@ public enum DisplayTarget: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
-        case .builtIn: return "Layar Bawaan MacBook"
-        case .all: return "Semua Layar"
-        case .external: return "Monitor Eksternal"
+        case .builtIn: return "MacBook Built-in Display"
+        case .all: return "All Displays"
+        case .external: return "External Display"
         }
     }
 }
@@ -97,11 +97,12 @@ public struct NotchPreferences: Codable, Equatable {
     public var cornerRadius: Double = 14.0
     public var earRadius: Double = 6.0
     
+    public var showOutline: Bool = true // Outline border to stay visible on black full-screen menu bars
     public var expandOnHover: Bool = true
     public var expandOnClick: Bool = false
-    public var lockHeightOnHover: Bool = false // Jika true, tinggi notch tetap 30pt (hanya lebar yang mengembang)
+    public var lockHeightOnHover: Bool = false // Locks height to menu bar, expands only horizontally
     public var hoverScaleWidth: Double = 1.25
-    public var hoverScaleHeight: Double = 1.15 // Default diperhalus (tidak lagi 1.5x yang terlalu tinggi)
+    public var hoverScaleHeight: Double = 1.15
     
     public var showInFullScreen: Bool = true
     public var displayTarget: DisplayTarget = .builtIn
@@ -145,7 +146,6 @@ public final class NotchSettingsStore: ObservableObject {
             if loaded.height < 24 {
                 loaded.height = 30.0
             }
-            // Batasi skala tinggi agar tidak terlalu besar di fullscreen
             if loaded.hoverScaleHeight > 1.25 {
                 loaded.hoverScaleHeight = 1.15
             }

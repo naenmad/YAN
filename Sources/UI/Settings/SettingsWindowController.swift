@@ -31,7 +31,7 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
         
-        newWindow.title = "Pengaturan YAN"
+        newWindow.title = "YAN Settings"
         newWindow.contentView = hostingView
         newWindow.minSize = NSSize(width: 660, height: 440)
         newWindow.center()
