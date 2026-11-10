@@ -21,6 +21,7 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+      - path: Resources
     info:
       path: Sources/Info.plist
       properties:

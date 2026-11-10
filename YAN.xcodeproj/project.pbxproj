@@ -11,27 +11,45 @@
 		16C972AE2E8F229B692C97BA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1046AD56BDABC41EB5F3CFD5 /* SettingsView.swift */; };
 		2B9259AFEC2FEC147B27F0F1 /* MediaRemoteBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5211A44464246B978D40147 /* MediaRemoteBridge.swift */; };
 		2BCE78CE673C2E8E37BFF680 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4AAA02E5B957883F64F8EC /* NotchShape.swift */; };
+		3B85686DEF9CE4F2A33D21EF /* MediaRemoteAdapter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6F7A79A6407EFA1D0CB4F72B /* MediaRemoteAdapter.framework */; };
 		5BADD3359911B5B364A27099 /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B63EE770753CC5C7C7C67 /* LyricsService.swift */; };
 		6CF1202F080E9A543ACC8500 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2500DEEC566B1AFE1B638A /* NotchPanel.swift */; };
 		9CD3200D0D60DABEB07BCE1C /* NotchPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2DA98588750D363758C5F84 /* NotchPreferences.swift */; };
 		A6DF8B722D4C22EEEEDB6952 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FFED4EDD68AC9938485293 /* SettingsWindowController.swift */; };
 		BD6CD33576306CA842C9AA2E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADD96C4556C25E7CDD29692 /* main.swift */; };
 		DD4084284FBD939BDCA05329 /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541990810512B99D2DEBD87C /* GlobalHotkeyManager.swift */; };
+		E64A085D17651B706F0BAE82 /* mediaremote-adapter.pl in Resources */ = {isa = PBXBuildFile; fileRef = 26627B39071BDDD890530D6E /* mediaremote-adapter.pl */; };
 		E7B448C6784C55651DECD906 /* NotchWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76812B184305A12E0C267093 /* NotchWindowManager.swift */; };
 		FA346574E4E7CBD7A0DE8E7F /* NotchCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0115F5AF3BC20A431229E6 /* NotchCanvasView.swift */; };
 		FCE7A1FB1436080FE29F11EC /* MediaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D3ADBD26A0AE2F2831F7401 /* MediaModel.swift */; };
 		FEC0E160A983CA81F62BC117 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1965A558E7201DFCA0594D /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		50958BAB467903E638933B94 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				3B85686DEF9CE4F2A33D21EF /* MediaRemoteAdapter.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		101B63EE770753CC5C7C7C67 /* LyricsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsService.swift; sourceTree = "<group>"; };
 		1046AD56BDABC41EB5F3CFD5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		10B42479AB39F7030632130E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1A2500DEEC566B1AFE1B638A /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
+		26627B39071BDDD890530D6E /* mediaremote-adapter.pl */ = {isa = PBXFileReference; lastKnownFileType = text.script.perl; path = "mediaremote-adapter.pl"; sourceTree = "<group>"; };
 		2D3ADBD26A0AE2F2831F7401 /* MediaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaModel.swift; sourceTree = "<group>"; };
 		35FFED4EDD68AC9938485293 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		541990810512B99D2DEBD87C /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
 		604205999232AE791CB202FA /* MediaManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaManager.swift; sourceTree = "<group>"; };
+		6F7A79A6407EFA1D0CB4F72B /* MediaRemoteAdapter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = MediaRemoteAdapter.framework; sourceTree = "<group>"; };
 		76812B184305A12E0C267093 /* NotchWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchWindowManager.swift; sourceTree = "<group>"; };
 		9C1965A558E7201DFCA0594D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A2DA98588750D363758C5F84 /* NotchPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPreferences.swift; sourceTree = "<group>"; };
@@ -55,6 +73,7 @@
 		436373FAD50E93503FF3267D = {
 			isa = PBXGroup;
 			children = (
+				8F11F004E21913756F73098C /* Resources */,
 				58F734AD0AEC4F40CBE1CB8F /* Sources */,
 				77FBA10CB164DFEBECFFA670 /* Products */,
 			);
@@ -117,6 +136,23 @@
 			path = Hotkey;
 			sourceTree = "<group>";
 		};
+		8F11F004E21913756F73098C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8F4BD921FEBED7D17508ABD4 /* mediaremote-adapter */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		8F4BD921FEBED7D17508ABD4 /* mediaremote-adapter */ = {
+			isa = PBXGroup;
+			children = (
+				26627B39071BDDD890530D6E /* mediaremote-adapter.pl */,
+				6F7A79A6407EFA1D0CB4F72B /* MediaRemoteAdapter.framework */,
+			);
+			path = "mediaremote-adapter";
+			sourceTree = "<group>";
+		};
 		AD8D6D98A9C47EC9B47AABED /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -153,6 +189,8 @@
 			buildConfigurationList = 77C356CDD0DF7BA227D0AB23 /* Build configuration list for PBXNativeTarget "YAN" */;
 			buildPhases = (
 				B1C203BD703E3E39101AB40E /* Sources */,
+				2FD58A02DE46D6B6B214E26C /* Resources */,
+				50958BAB467903E638933B94 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -194,6 +232,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2FD58A02DE46D6B6B214E26C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E64A085D17651B706F0BAE82 /* mediaremote-adapter.pl in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B1C203BD703E3E39101AB40E /* Sources */ = {
