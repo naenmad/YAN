@@ -116,6 +116,7 @@ public struct NotchCanvasView: View {
     @State private var outsideClickMonitor: Any? = nil
     @State private var outsideLocalMonitor: Any? = nil
     @State private var trackpadSwipeMonitor: Any? = nil
+    @State private var trackpadSwipeGlobalMonitor: Any? = nil
     @State private var isGlobalDragTargeted: Bool = false
     
     private var hasActiveMedia: Bool {
@@ -292,9 +293,9 @@ public struct NotchCanvasView: View {
                         let dy = abs(value.translation.height)
                         if abs(dx) > dy * 1.2 {
                             if dx < -25 {
-                                pageManager.switchToPage(.dropZone)
+                                pageManager.nextPage()
                             } else if dx > 25 {
-                                pageManager.switchToPage(.dashboard)
+                                pageManager.previousPage()
                             }
                         }
                     }
@@ -388,12 +389,25 @@ public struct NotchCanvasView: View {
             }
             return event
         }
+        
+        trackpadSwipeGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .swipe]) { event in
+            guard self.isHovered || self.isExpanded else { return }
+            if event.type == .scrollWheel {
+                _ = self.pageManager.handleScrollWheel(event: event)
+            } else if event.type == .swipe {
+                _ = self.pageManager.handleSwipe(event: event)
+            }
+        }
     }
     
     private func stopTrackpadSwipeMonitoring() {
         if let monitor = trackpadSwipeMonitor {
             NSEvent.removeMonitor(monitor)
             trackpadSwipeMonitor = nil
+        }
+        if let monitor = trackpadSwipeGlobalMonitor {
+            NSEvent.removeMonitor(monitor)
+            trackpadSwipeGlobalMonitor = nil
         }
     }
     
@@ -470,7 +484,8 @@ public struct NotchCanvasView: View {
         let dividerHeight = max(70.0, currentH - 32)
         
         Group {
-            if activePage == .dashboard {
+            switch activePage {
+            case .dashboard:
                 HStack(spacing: 12) {
                     unifiedMediaPlayerSection
                         .frame(width: leftWidth)
@@ -485,8 +500,24 @@ public struct NotchCanvasView: View {
                 .padding(.horizontal, 14)
                 .padding(.top, 12)
                 .transition(.opacity)
-            } else {
+            case .dropZone:
                 NotchDropZoneView()
+                    .padding(.top, 4)
+                    .transition(.opacity)
+            case .clipboard:
+                NotchClipboardView()
+                    .padding(.top, 4)
+                    .transition(.opacity)
+            case .hardwareHUD:
+                NotchHardwareHUDView()
+                    .padding(.top, 4)
+                    .transition(.opacity)
+            case .quickTools:
+                NotchQuickToolsView()
+                    .padding(.top, 4)
+                    .transition(.opacity)
+            case .scratchpad:
+                NotchScratchpadView()
                     .padding(.top, 4)
                     .transition(.opacity)
             }
@@ -829,11 +860,24 @@ public struct NotchCanvasView: View {
         let topPad = max(4.0, (hoverH - 40.0) / 2.0)
         
         Group {
-            if activePage == .dashboard {
+            switch activePage {
+            case .dashboard:
                 compactDashboardGlance
                     .transition(.opacity)
-            } else {
+            case .dropZone:
                 NotchCompactDropZoneView()
+                    .transition(.opacity)
+            case .clipboard:
+                NotchCompactClipboardView()
+                    .transition(.opacity)
+            case .hardwareHUD:
+                NotchCompactHardwareHUDView()
+                    .transition(.opacity)
+            case .quickTools:
+                NotchCompactQuickToolsView()
+                    .transition(.opacity)
+            case .scratchpad:
+                NotchCompactScratchpadView()
                     .transition(.opacity)
             }
         }

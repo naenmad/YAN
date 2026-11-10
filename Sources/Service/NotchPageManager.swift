@@ -1,27 +1,6 @@
 import SwiftUI
 import AppKit
 
-public enum NotchPage: Int, CaseIterable, Identifiable {
-    case dashboard = 0 // Media Player + Calendar & Schedule
-    case dropZone = 1  // AirDrop Target + Temporary Stash Shelf
-    
-    public var id: Int { rawValue }
-    
-    public var title: String {
-        switch self {
-        case .dashboard: return "Dashboard"
-        case .dropZone: return "Drop Zone"
-        }
-    }
-    
-    public var icon: String {
-        switch self {
-        case .dashboard: return "square.grid.2x2.fill"
-        case .dropZone: return "tray.and.arrow.down.fill"
-        }
-    }
-}
-
 @MainActor
 public final class NotchPageManager: ObservableObject {
     public static let shared = NotchPageManager()
@@ -38,6 +17,18 @@ public final class NotchPageManager: ObservableObject {
     
     private init() {}
     
+    public var enabledPages: [NotchPage] {
+        let pages = NotchSettingsStore.shared.preferences.enabledPages
+        return pages.isEmpty ? [.dashboard] : pages
+    }
+    
+    public func validateActivePage() {
+        let active = enabledPages
+        if !active.contains(activePage), let first = active.first {
+            switchToPage(first)
+        }
+    }
+    
     public func switchToPage(_ page: NotchPage) {
         guard activePage != page else { return }
         withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
@@ -45,8 +36,37 @@ public final class NotchPageManager: ObservableObject {
         }
     }
     
+    public func nextPage() {
+        let active = enabledPages
+        guard let idx = active.firstIndex(of: activePage) else {
+            if let first = active.first { switchToPage(first) }
+            return
+        }
+        if idx + 1 < active.count {
+            switchToPage(active[idx + 1])
+        }
+    }
+    
+    public func previousPage() {
+        let active = enabledPages
+        guard let idx = active.firstIndex(of: activePage) else {
+            if let first = active.first { switchToPage(first) }
+            return
+        }
+        if idx > 0 {
+            switchToPage(active[idx - 1])
+        }
+    }
+    
     public func togglePage() {
-        switchToPage(activePage == .dashboard ? .dropZone : .dashboard)
+        let active = enabledPages
+        guard active.count > 1 else { return }
+        if let idx = active.firstIndex(of: activePage) {
+            let nextIdx = (idx + 1) % active.count
+            switchToPage(active[nextIdx])
+        } else if let first = active.first {
+            switchToPage(first)
+        }
     }
     
     /// Menangani event scrollWheel trackpad untuk swipe 2-jari horizontal
@@ -60,7 +80,7 @@ public final class NotchPageManager: ObservableObject {
         let deltaX = event.scrollingDeltaX
         let deltaY = event.scrollingDeltaY
         
-        // 2. Pastikan gestur dominan horizontal (hindari konflik dengan scroll vertikal pada daftar shelf)
+        // 2. Pastikan gestur dominan horizontal (hindari konflik dengan scroll vertikal pada daftar)
         guard abs(deltaX) > abs(deltaY) * 1.15 else {
             if abs(deltaY) > 5 {
                 accumulatedDeltaX = 0
@@ -92,25 +112,21 @@ public final class NotchPageManager: ObservableObject {
         }
         
         if !hasSwitchedInPhase {
-            // Jari digeser dari kanan ke kiri (ke arah halaman berikutnya: Drop Zone)
+            // Jari digeser dari kanan ke kiri (ke halaman berikutnya)
             if accumulatedDeltaX < -swipeThreshold {
-                if activePage != .dropZone {
-                    switchToPage(.dropZone)
-                    lastSwitchTime = now
-                    hasSwitchedInPhase = true
-                    accumulatedDeltaX = 0
-                    return true
-                }
+                nextPage()
+                lastSwitchTime = now
+                hasSwitchedInPhase = true
+                accumulatedDeltaX = 0
+                return true
             }
-            // Jari digeser dari kiri ke kanan (ke arah halaman sebelumnya: Dashboard)
+            // Jari digeser dari kiri ke kanan (ke halaman sebelumnya)
             else if accumulatedDeltaX > swipeThreshold {
-                if activePage != .dashboard {
-                    switchToPage(.dashboard)
-                    lastSwitchTime = now
-                    hasSwitchedInPhase = true
-                    accumulatedDeltaX = 0
-                    return true
-                }
+                previousPage()
+                lastSwitchTime = now
+                hasSwitchedInPhase = true
+                accumulatedDeltaX = 0
+                return true
             }
         }
         
@@ -120,10 +136,10 @@ public final class NotchPageManager: ObservableObject {
     /// Menangani gesture swipe 3-jari native macOS
     public func handleSwipe(event: NSEvent) -> Bool {
         if event.deltaX < 0 {
-            switchToPage(.dropZone)
+            nextPage()
             return true
         } else if event.deltaX > 0 {
-            switchToPage(.dashboard)
+            previousPage()
             return true
         }
         return false

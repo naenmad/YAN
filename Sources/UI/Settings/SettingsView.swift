@@ -4,6 +4,7 @@ import AppKit
 public enum SettingsCategory: String, CaseIterable, Identifiable {
     case geometry = "Geometry"
     case interaction = "Interaction"
+    case pages = "Pages"
     case display = "Displays"
     case about = "About"
     
@@ -13,6 +14,7 @@ public enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .geometry: return "macwindow"
         case .interaction: return "cursorarrow.rays"
+        case .pages: return "square.grid.2x2"
         case .display: return "display.2"
         case .about: return "info.circle"
         }
@@ -61,6 +63,8 @@ public struct SettingsView: View {
                         GeometryCategoryView(store: store)
                     case .interaction:
                         InteractionCategoryView(store: store)
+                    case .pages:
+                        PagesCategoryView(store: store)
                     case .display:
                         DisplayCategoryView(store: store)
                     case .about:
@@ -100,6 +104,7 @@ private struct SidebarItemButton: View {
             }
             .padding(.vertical, 7)
             .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(isSelected ? Color.accentColor : Color.clear)
@@ -428,6 +433,164 @@ private struct InteractionCategoryView: View {
             return "Displays live synchronized karaoke lyrics in real-time right inside the resting notch."
         case .empty:
             return "Keeps the resting notch completely black and stealthy with zero text or icons."
+        }
+    }
+}
+
+// MARK: - Pages Category View
+
+private struct PagesCategoryView: View {
+    @ObservedObject var store: NotchSettingsStore
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Notch Pages & Order")
+                    .font(.title2.weight(.semibold))
+                Text("Enable or disable notch pages, and customize the order you swipe through them.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            GroupBox {
+                VStack(spacing: 0) {
+                    ForEach(Array(store.preferences.pagesOrder.enumerated()), id: \.element.id) { index, item in
+                        pageRow(index: index, config: item)
+                        
+                        if index < store.preferences.pagesOrder.count - 1 {
+                            Divider()
+                                .padding(.vertical, 8)
+                        }
+                    }
+                }
+                .padding(14)
+            }
+            
+            GroupBox {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Reset Page Order")
+                            .font(.subheadline.weight(.medium))
+                        Text("Restores the default suite layout with all 6 pages enabled.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button("Reset Pages") {
+                        store.preferences.pagesOrder = NotchPreferences.defaultPagesOrder
+                    }
+                }
+                .padding(12)
+            }
+            
+            GroupBox {
+                HStack(spacing: 12) {
+                    Image(systemName: "hand.draw")
+                        .font(.system(size: 20))
+                        .foregroundColor(.accentColor)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Navigation Tip")
+                            .font(.subheadline.weight(.medium))
+                        Text("Hover over the notch and swipe left or right with 2 fingers on your trackpad to cycle seamlessly across enabled pages.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(12)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func pageRow(index: Int, config: NotchPageConfig) -> some View {
+        HStack(spacing: 12) {
+            // Position number badge
+            Text("\(index + 1)")
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(.secondary)
+                .frame(width: 18)
+            
+            // Icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(config.isEnabled ? Color.accentColor.opacity(0.18) : Color.white.opacity(0.06))
+                    .frame(width: 34, height: 34)
+                
+                Image(systemName: config.page.icon)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(config.isEnabled ? .accentColor : .secondary)
+            }
+            
+            // Text info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(config.page.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(config.isEnabled ? .primary : .secondary)
+                Text(config.page.subtitle)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            // Reorder Up & Down buttons
+            HStack(spacing: 3) {
+                Button {
+                    moveUp(at: index)
+                } label: {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.borderless)
+                .disabled(index == 0)
+                .help("Move Up")
+                
+                Button {
+                    moveDown(at: index)
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.borderless)
+                .disabled(index == store.preferences.pagesOrder.count - 1)
+                .help("Move Down")
+            }
+            .padding(.trailing, 8)
+            
+            // Enable / Disable Toggle
+            Toggle("", isOn: Binding(
+                get: { config.isEnabled },
+                set: { newValue in
+                    let enabledCount = store.preferences.pagesOrder.filter { $0.isEnabled }.count
+                    if !newValue && enabledCount <= 1 {
+                        return
+                    }
+                    if let idx = store.preferences.pagesOrder.firstIndex(where: { $0.id == config.id }) {
+                        store.preferences.pagesOrder[idx].isEnabled = newValue
+                        NotchPageManager.shared.validateActivePage()
+                    }
+                }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
+    }
+    
+    private func moveUp(at index: Int) {
+        guard index > 0 else { return }
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+            store.preferences.pagesOrder.swapAt(index, index - 1)
+        }
+    }
+    
+    private func moveDown(at index: Int) {
+        guard index < store.preferences.pagesOrder.count - 1 else { return }
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+            store.preferences.pagesOrder.swapAt(index, index + 1)
         }
     }
 }

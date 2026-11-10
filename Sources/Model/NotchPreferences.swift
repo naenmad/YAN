@@ -103,6 +103,61 @@ public enum NormalStateMediaDisplay: String, Codable, CaseIterable, Identifiable
     }
 }
 
+public enum NotchPage: String, Codable, CaseIterable, Identifiable {
+    case dashboard = "dashboard"
+    case dropZone = "dropZone"
+    case clipboard = "clipboard"
+    case hardwareHUD = "hardwareHUD"
+    case quickTools = "quickTools"
+    case scratchpad = "scratchpad"
+    
+    public var id: String { rawValue }
+    
+    public var title: String {
+        switch self {
+        case .dashboard: return "Dashboard"
+        case .dropZone: return "Drop Zone"
+        case .clipboard: return "Clipboard"
+        case .hardwareHUD: return "Hardware HUD"
+        case .quickTools: return "Quick Tools"
+        case .scratchpad: return "Scratchpad"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .dashboard: return "square.grid.2x2.fill"
+        case .dropZone: return "tray.and.arrow.down.fill"
+        case .clipboard: return "doc.on.clipboard.fill"
+        case .hardwareHUD: return "cpu.fill"
+        case .quickTools: return "wrench.and.screwdriver.fill"
+        case .scratchpad: return "note.text"
+        }
+    }
+    
+    public var subtitle: String {
+        switch self {
+        case .dashboard: return "Media playback with synced lyrics & week calendar"
+        case .dropZone: return "Native AirDrop target & temporary stash shelf"
+        case .clipboard: return "Clipboard history & pinned snippets manager"
+        case .hardwareHUD: return "Real-time CPU, RAM & battery status HUD"
+        case .quickTools: return "Caffeine sleep blocker, eyedropper, OCR & sound"
+        case .scratchpad: return "Instant scratchpad thoughts & daily to-do checklist"
+        }
+    }
+}
+
+public struct NotchPageConfig: Codable, Identifiable, Equatable {
+    public var id: String { page.rawValue }
+    public var page: NotchPage
+    public var isEnabled: Bool
+    
+    public init(page: NotchPage, isEnabled: Bool = true) {
+        self.page = page
+        self.isEnabled = isEnabled
+    }
+}
+
 public struct NotchPreferences: Codable, Equatable {
     public var widthPreset: WidthPreset = .standard
     public var heightPreset: HeightPreset = .menuBar
@@ -132,6 +187,23 @@ public struct NotchPreferences: Codable, Equatable {
     public var displayTarget: DisplayTarget = .builtIn
     public var normalStateMediaDisplay: NormalStateMediaDisplay = .songTitle
     
+    // Konfigurasi Halaman Notch (Dapat diaktifkan/dinonaktifkan & diatur urutannya)
+    public static let defaultPagesOrder: [NotchPageConfig] = [
+        NotchPageConfig(page: .dashboard, isEnabled: true),
+        NotchPageConfig(page: .dropZone, isEnabled: true),
+        NotchPageConfig(page: .clipboard, isEnabled: true),
+        NotchPageConfig(page: .hardwareHUD, isEnabled: true),
+        NotchPageConfig(page: .quickTools, isEnabled: true),
+        NotchPageConfig(page: .scratchpad, isEnabled: true)
+    ]
+    
+    public var pagesOrder: [NotchPageConfig] = NotchPreferences.defaultPagesOrder
+    
+    public var enabledPages: [NotchPage] {
+        let active = pagesOrder.filter { $0.isEnabled }.map { $0.page }
+        return active.isEmpty ? [.dashboard] : active
+    }
+    
     public static let `default` = NotchPreferences()
     
     enum CodingKeys: String, CodingKey {
@@ -143,6 +215,7 @@ public struct NotchPreferences: Codable, Equatable {
         case hoverWidth, hoverHeight, clickedWidth, clickedHeight
         case showInFullScreen, displayTarget
         case normalStateMediaDisplay
+        case pagesOrder
     }
     
     public init() {}
@@ -170,6 +243,27 @@ public struct NotchPreferences: Codable, Equatable {
         showInFullScreen = try c.decodeIfPresent(Bool.self, forKey: .showInFullScreen) ?? true
         displayTarget = try c.decodeIfPresent(DisplayTarget.self, forKey: .displayTarget) ?? .builtIn
         normalStateMediaDisplay = try c.decodeIfPresent(NormalStateMediaDisplay.self, forKey: .normalStateMediaDisplay) ?? .songTitle
+        
+        let decodedPages = try c.decodeIfPresent([NotchPageConfig].self, forKey: .pagesOrder)
+        if let decoded = decodedPages, !decoded.isEmpty {
+            // Pastikan semua jenis halaman terbaru masuk jika ada penambahan baru
+            var current = decoded
+            for page in NotchPage.allCases {
+                if !current.contains(where: { $0.page == page }) {
+                    current.append(NotchPageConfig(page: page, isEnabled: true))
+                }
+            }
+            self.pagesOrder = current
+        } else {
+            self.pagesOrder = [
+                NotchPageConfig(page: .dashboard, isEnabled: true),
+                NotchPageConfig(page: .dropZone, isEnabled: true),
+                NotchPageConfig(page: .clipboard, isEnabled: true),
+                NotchPageConfig(page: .hardwareHUD, isEnabled: true),
+                NotchPageConfig(page: .quickTools, isEnabled: true),
+                NotchPageConfig(page: .scratchpad, isEnabled: true)
+            ]
+        }
     }
     
     public mutating func updateRadiiForCurrentStyle() {
