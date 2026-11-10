@@ -54,13 +54,19 @@ public struct NotchDropZoneView: View {
                             )
                     )
                 
-                // Ikon AirDrop Asli macOS (Bersih, Tanpa Tulisan)
-                Image(nsImage: ShelfManager.airDropIcon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: max(32.0, size * 0.42), height: max(32.0, size * 0.42))
-                    .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
-                    .scaleEffect(isAirDropHovered ? 1.10 : 1.0)
+                // Ikon AirDrop Asli macOS (Ukuran seimbang 28x28 di dalam lingkaran 50x50)
+                ZStack {
+                    Circle()
+                        .fill(isAirDropHovered ? Color.cyan.opacity(0.22) : Color.white.opacity(0.06))
+                        .frame(width: 50, height: 50)
+                    
+                    Image(nsImage: ShelfManager.airDropIcon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 28, height: 28)
+                        .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                }
+                .scaleEffect(isAirDropHovered ? 1.08 : 1.0)
             }
             .contentShape(Rectangle())
         }
@@ -79,7 +85,7 @@ public struct NotchDropZoneView: View {
     private var shelfSection: some View {
         Group {
             if shelf.items.isEmpty {
-                // Empty Drop Box: Ikon Simpan Minimalis di Tengah
+                // Empty Drop Box: Ikon Simpan Minimalis di Tengah (Ukuran seimbang 28x28 di dalam lingkaran 50x50)
                 ZStack {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(isShelfHovered ? Color.cyan.opacity(0.16) : Color.white.opacity(0.04))
@@ -93,14 +99,14 @@ public struct NotchDropZoneView: View {
                     
                     ZStack {
                         Circle()
-                            .fill(isShelfHovered ? Color.cyan.opacity(0.25) : Color.white.opacity(0.06))
-                            .frame(width: 48, height: 48)
+                            .fill(isShelfHovered ? Color.cyan.opacity(0.22) : Color.white.opacity(0.06))
+                            .frame(width: 50, height: 50)
                         
                         Image(systemName: "tray.and.arrow.down")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.80))
-                            .scaleEffect(isShelfHovered ? 1.10 : 1.0)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
                     }
+                    .scaleEffect(isShelfHovered ? 1.08 : 1.0)
                 }
                 .contentShape(Rectangle())
                 .onDrop(of: [.fileURL], isTargeted: $isShelfHovered) { providers in
@@ -256,7 +262,7 @@ public struct NotchCompactDropZoneView: View {
                         Image(nsImage: ShelfManager.airDropIcon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: max(20.0, airdropSize * 0.55), height: max(20.0, airdropSize * 0.55))
+                            .frame(width: 18, height: 18)
                             .scaleEffect(isAirDropHovered ? 1.10 : 1.0)
                     }
                     .frame(width: airdropSize, height: airdropSize)
@@ -283,7 +289,7 @@ public struct NotchCompactDropZoneView: View {
                     
                     ZStack(alignment: .topTrailing) {
                         Image(systemName: "tray.and.arrow.down")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(isShelfHovered ? .cyan : .white.opacity(0.85))
                             .scaleEffect(isShelfHovered ? 1.10 : 1.0)
                         
