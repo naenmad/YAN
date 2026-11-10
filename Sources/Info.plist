@@ -28,5 +28,9 @@
 	<true/>
 	<key>NSCalendarsUsageDescription</key>
 	<string>YAN displays upcoming schedule and events in the virtual notch.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>YAN displays and manages your Apple Reminders tasks directly in the notch.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>YAN integrates with Apple Notes and system utilities to provide quick actions.</string>
 </dict>
 </plist>

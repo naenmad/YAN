@@ -130,7 +130,7 @@ public struct NotchClipboardView: View {
                                 item: item,
                                 isCopied: copiedId == item.id,
                                 onCopy: {
-                                    clipboard.copy(content: item.content)
+                                    clipboard.copyItem(item)
                                     withAnimation(.spring(response: 0.2, dampingFraction: 0.75)) {
                                         copiedId = item.id
                                     }
@@ -241,8 +241,18 @@ private struct ClipboardRow: View {
     var body: some View {
         Button(action: onCopy) {
             HStack(spacing: 8) {
-                // Leading Type Icon or Color Swatch
-                if item.type == .color, let col = item.color {
+                // Leading Type Icon, Image Thumbnail, or Color Swatch
+                if item.type == .image, let img = item.image {
+                    Image(nsImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 20, height: 20)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                        )
+                } else if item.type == .color, let col = item.color {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
                         .fill(col)
                         .frame(width: 18, height: 18)
@@ -262,9 +272,9 @@ private struct ClipboardRow: View {
                         .frame(width: 18, height: 18)
                 }
                 
-                // Text Preview
+                // Text Preview / Screenshot Info
                 Text(item.content.trimmingCharacters(in: .whitespacesAndNewlines))
-                    .font(.system(size: 9.5, weight: .medium, design: item.type == .color ? .monospaced : .default))
+                    .font(.system(size: 9.5, weight: item.type == .image ? .semibold : .medium, design: (item.type == .color || item.type == .image) ? .monospaced : .default))
                     .foregroundColor(isCopied ? .cyan : .white.opacity(0.90))
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -386,31 +396,53 @@ public struct NotchCompactClipboardView: View {
     
     public var body: some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.cyan.opacity(0.15))
-                    .frame(width: 28, height: 28)
-                Image(systemName: "doc.on.clipboard.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.cyan)
-            }
-            
             if let latest = clipboard.history.first {
                 Button {
-                    clipboard.copy(content: latest.content)
+                    clipboard.copyItem(latest)
                     withAnimation { isCopied = true }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { isCopied = false }
                 } label: {
-                    HStack(spacing: 6) {
-                        VStack(alignment: .leading, spacing: 1.5) {
-                            Text(isCopied ? "Copied to Clipboard!" : "Latest Copied")
-                                .font(.system(size: 8.5, weight: .semibold, design: .rounded))
-                                .foregroundColor(isCopied ? .cyan : .white.opacity(0.50))
+                    HStack(spacing: 8) {
+                        if latest.type == .image, let img = latest.image {
+                            Image(nsImage: img)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 26, height: 26)
+                                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                        .stroke(Color.white.opacity(0.20), lineWidth: 0.5)
+                                )
                             
-                            Text(latest.content.trimmingCharacters(in: .whitespacesAndNewlines))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(isCopied ? "Screenshot Copied!" : "Screenshot")
+                                    .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                                    .foregroundColor(isCopied ? .cyan : .white.opacity(0.50))
+                                Text(latest.content)
+                                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                            }
+                        } else {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.cyan.opacity(0.15))
+                                    .frame(width: 26, height: 26)
+                                Image(systemName: latest.type == .link ? "link" : "doc.on.clipboard.fill")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.cyan)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(isCopied ? "Copied to Clipboard!" : "Latest Copied")
+                                    .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                                    .foregroundColor(isCopied ? .cyan : .white.opacity(0.50))
+                                
+                                Text(latest.content.trimmingCharacters(in: .whitespacesAndNewlines))
+                                    .font(.system(size: 9.5, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                            }
                         }
                         
                         Spacer()

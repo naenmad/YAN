@@ -1,206 +1,276 @@
 import SwiftUI
 import AppKit
 
+// MARK: - NotchScratchpadView (Mode Clicked / 152pt)
+
 public struct NotchScratchpadView: View {
     @ObservedObject private var manager = ScratchpadManager.shared
-    @State private var newTodoText: String = ""
+    @ObservedObject private var store = NotchSettingsStore.shared
+    
+    @State private var newReminderText: String = ""
     @State private var isNoteCopied: Bool = false
     
     public init() {}
     
     public var body: some View {
-        HStack(spacing: 12) {
-            // SISI KIRI: Instant Scratchpad
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    HStack(spacing: 4) {
+        let currentW = CGFloat(store.preferences.clickedWidth)
+        let currentH = CGFloat(store.preferences.clickedHeight)
+        let availableW = max(360.0, currentW - 53)
+        let leftWidth = max(230.0, availableW * 0.54)
+        let rightWidth = max(190.0, availableW - leftWidth)
+        let dividerHeight = max(70.0, currentH - 32)
+        
+        VStack(spacing: 6) {
+            HStack(spacing: 12) {
+                // SISI KIRI: Instant Scratchpad & Apple Notes
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: "note.text")
-                            .font(.system(size: 9))
+                            .font(.system(size: 9, weight: .semibold))
                             .foregroundColor(.cyan)
-                        Text("Scratchpad")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Spacer()
-                    
-                    if !manager.note.isEmpty {
+                        Text("NOTES & SCRATCHPAD")
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                            .tracking(0.8)
+                            .foregroundColor(.white.opacity(0.85))
+                        
+                        Spacer()
+                        
+                        // Action: Open Notes.app
                         Button {
-                            manager.copyNote()
-                            withAnimation { isNoteCopied = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { isNoteCopied = false }
+                            manager.openAppleNotes()
                         } label: {
                             HStack(spacing: 3) {
-                                Image(systemName: isNoteCopied ? "checkmark" : "doc.on.doc")
-                                Text(isNoteCopied ? "Copied" : "Copy")
+                                Text("Notes")
+                                Image(systemName: "arrow.up.right")
                             }
                             .font(.system(size: 8, weight: .semibold))
-                            .foregroundColor(isNoteCopied ? .cyan : .white.opacity(0.60))
+                            .foregroundColor(.white.opacity(0.60))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Color.white.opacity(0.06))
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                    }
-                }
-                
-                ZStack(alignment: .topLeading) {
-                    if manager.note.isEmpty {
-                        Text("Type quick thoughts, code snippets, or draft notes here...")
-                            .font(.system(size: 9.5))
-                            .foregroundColor(.white.opacity(0.25))
-                            .padding(.top, 4)
-                            .padding(.leading, 4)
+                        .help("Open Apple Notes")
+                        
+                        // Action: Export Note
+                        if !manager.note.isEmpty {
+                            Button {
+                                manager.exportToAppleNotes()
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Export")
+                                }
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(.cyan)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.cyan.opacity(0.12))
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Save to Apple Notes")
+                        }
                     }
                     
-                    TextEditor(text: $manager.note)
-                        .font(.system(size: 9.5, weight: .regular))
-                        .foregroundColor(.white)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                }
-                .padding(6)
-                .background(Color.white.opacity(0.03))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-            .frame(maxWidth: .infinity)
-            
-            // DIVIDER TENGAH
-            Rectangle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 1)
-                .padding(.vertical, 4)
-            
-            // SISI KANAN: Mini To-Do Checklist
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checklist")
-                            .font(.system(size: 9))
-                            .foregroundColor(.cyan)
-                        Text("To-Do")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                    // Scratchpad Input Box
+                    ZStack(alignment: .topLeading) {
+                        if manager.note.isEmpty {
+                            Text("Type quick thoughts, code, or draft thoughts here...")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(.white.opacity(0.25))
+                                .padding(.top, 6)
+                                .padding(.leading, 6)
+                        }
+                        
+                        TextEditor(text: $manager.note)
+                            .font(.system(size: 9.5, weight: .regular))
                             .foregroundColor(.white)
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .padding(4)
                     }
-                    
-                    Spacer()
-                    
-                    if manager.todos.contains(where: { $0.isCompleted }) {
-                        Button("Clear Done") {
-                            manager.clearCompleted()
+                    .background(Color.white.opacity(0.035))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .frame(width: leftWidth)
+                
+                // DIVIDER TENGAH
+                Rectangle()
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 1, height: dividerHeight)
+                
+                // SISI KANAN: Apple Reminders & Daily Tasks
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checklist")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.cyan)
+                        Text(manager.hasRemindersAccess ? "APPLE REMINDERS" : "QUICK TASKS")
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                            .tracking(0.8)
+                            .foregroundColor(.white.opacity(0.85))
+                        
+                        Spacer()
+                        
+                        Button {
+                            manager.openRemindersApp()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Text("Reminders")
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.60))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Capsule())
                         }
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.40))
                         .buttonStyle(.plain)
+                        .help("Open Apple Reminders")
                     }
-                }
-                
-                // Add Todo Row
-                HStack(spacing: 6) {
-                    TextField("Add task...", text: $newTodoText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 9.5))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3.5)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .onSubmit {
-                            submitTodo()
-                        }
                     
-                    Button(action: submitTodo) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.black)
-                            .frame(width: 18, height: 18)
-                            .background(Color.cyan)
-                            .clipShape(Circle())
+                    // Quick Add Task Row
+                    HStack(spacing: 6) {
+                        TextField("New reminder...", text: $newReminderText)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 9.5))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .onSubmit {
+                                submitReminder()
+                            }
+                        
+                        Button {
+                            submitReminder()
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.black)
+                                .frame(width: 20, height: 20)
+                                .background(Color.cyan)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(newReminderText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .buttonStyle(.plain)
-                }
-                
-                // Todos List
-                if manager.todos.isEmpty {
-                    VStack {
-                        Spacer()
-                        Text("No pending tasks")
-                            .font(.system(size: 9, weight: .regular))
-                            .foregroundColor(.white.opacity(0.30))
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
-                } else {
+                    
+                    // Tasks List
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 4) {
-                            ForEach(manager.todos) { item in
-                                TodoRow(
-                                    item: item,
-                                    onToggle: {
-                                        manager.toggleTodo(id: item.id)
-                                    },
-                                    onDelete: {
-                                        manager.removeTodo(id: item.id)
+                            if manager.hasRemindersAccess {
+                                if manager.appleReminders.isEmpty {
+                                    Text("No pending Apple Reminders")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.white.opacity(0.35))
+                                        .padding(.top, 12)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                } else {
+                                    ForEach(manager.appleReminders) { rem in
+                                        HStack(spacing: 6) {
+                                            Button {
+                                                manager.toggleReminder(id: rem.id)
+                                            } label: {
+                                                Image(systemName: rem.isCompleted ? "checkmark.circle.fill" : "circle")
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(rem.isCompleted ? .cyan : .white.opacity(0.40))
+                                            }
+                                            .buttonStyle(.plain)
+                                            
+                                            Text(rem.title)
+                                                .font(.system(size: 9.5, weight: .medium))
+                                                .foregroundColor(rem.isCompleted ? .white.opacity(0.35) : .white.opacity(0.90))
+                                                .strikethrough(rem.isCompleted, color: .white.opacity(0.35))
+                                                .lineLimit(1)
+                                            
+                                            Spacer()
+                                            
+                                            Button {
+                                                manager.deleteReminder(id: rem.id)
+                                            } label: {
+                                                Image(systemName: "xmark")
+                                                    .font(.system(size: 7.5))
+                                                    .foregroundColor(.white.opacity(0.25))
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3.5)
+                                        .background(Color.white.opacity(0.025))
+                                        .clipShape(RoundedRectangle(cornerRadius: 6))
                                     }
-                                )
+                                }
+                            } else {
+                                // Fallback Local Tasks
+                                ForEach(manager.localTodos) { todo in
+                                    HStack(spacing: 6) {
+                                        Button {
+                                            manager.toggleReminder(id: todo.id.uuidString)
+                                        } label: {
+                                            Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(todo.isCompleted ? .cyan : .white.opacity(0.40))
+                                        }
+                                        .buttonStyle(.plain)
+                                        
+                                        Text(todo.text)
+                                            .font(.system(size: 9.5, weight: .medium))
+                                            .foregroundColor(todo.isCompleted ? .white.opacity(0.35) : .white.opacity(0.90))
+                                            .strikethrough(todo.isCompleted, color: .white.opacity(0.35))
+                                            .lineLimit(1)
+                                        
+                                        Spacer()
+                                        
+                                        Button {
+                                            manager.deleteReminder(id: todo.id.uuidString)
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 7.5))
+                                                .foregroundColor(.white.opacity(0.25))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3.5)
+                                    .background(Color.white.opacity(0.025))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                }
                             }
                         }
-                        .padding(.vertical, 1)
                     }
                 }
+                .frame(width: rightWidth)
             }
-            .frame(maxWidth: .infinity)
+            
+            // Toast feedback
+            if let toast = manager.toastMessage {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 7.5, weight: .bold))
+                    Text(toast)
+                        .font(.system(size: 8, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(.cyan)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Color.cyan.opacity(0.12))
+                .clipShape(Capsule())
+                .transition(.opacity)
+            }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.top, 12)
     }
     
-    private func submitTodo() {
-        manager.addTodo(text: newTodoText)
-        newTodoText = ""
-    }
-}
-
-// MARK: - Todo Row Component
-
-private struct TodoRow: View {
-    let item: TodoItem
-    let onToggle: () -> Void
-    let onDelete: () -> Void
-    
-    @State private var isHovered: Bool = false
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Button(action: onToggle) {
-                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 10))
-                    .foregroundColor(item.isCompleted ? .cyan : .white.opacity(0.35))
-            }
-            .buttonStyle(.plain)
-            
-            Text(item.text)
-                .font(.system(size: 9.5, weight: .medium))
-                .foregroundColor(item.isCompleted ? .white.opacity(0.35) : .white)
-                .strikethrough(item.isCompleted, color: .white.opacity(0.35))
-                .lineLimit(1)
-            
-            Spacer(minLength: 0)
-            
-            Button(action: onDelete) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 7.5, weight: .bold))
-                    .foregroundColor(.white.opacity(isHovered ? 0.60 : 0.0))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(isHovered ? Color.white.opacity(0.04) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .onHover { hovering in
-            isHovered = hovering
-        }
+    private func submitReminder() {
+        let trimmed = newReminderText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        manager.addReminder(title: trimmed)
+        newReminderText = ""
     }
 }
 
@@ -213,49 +283,88 @@ public struct NotchCompactScratchpadView: View {
     
     public var body: some View {
         HStack(spacing: 12) {
-            // Task count chip
-            let uncompleted = manager.todos.filter { !$0.isCompleted }
-            HStack(spacing: 6) {
+            // Sisi Kiri: Scratchpad Peek
+            HStack(spacing: 8) {
                 ZStack {
-                    Circle()
-                        .fill(Color.cyan.opacity(0.18))
-                        .frame(width: 24, height: 24)
-                    Image(systemName: "checklist")
-                        .font(.system(size: 11, weight: .bold))
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: "note.text")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.cyan)
                 }
                 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("\(uncompleted.count) Tasks Pending")
-                        .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Apple Notes & Scratchpad")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    if let first = uncompleted.first {
-                        Text(first.text)
-                            .font(.system(size: 8, weight: .regular))
-                            .foregroundColor(.white.opacity(0.50))
-                            .lineLimit(1)
-                    }
+                    Text(manager.note.isEmpty ? "Tap notch to write note..." : manager.note.components(separatedBy: "\n").first ?? "")
+                        .font(.system(size: 8.5, weight: .medium))
+                        .foregroundColor(.white.opacity(0.50))
+                        .lineLimit(1)
                 }
+                
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
             
             // Divider
             Rectangle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 1, height: 24)
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 1, height: 16)
             
-            // Scratch note snippet
-            HStack(spacing: 6) {
-                Image(systemName: "note.text")
-                    .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.50))
+            // Sisi Kanan: Apple Reminders Next Task
+            HStack(spacing: 8) {
+                if let nextReminder = manager.appleReminders.first(where: { !$0.isCompleted }) {
+                    Button {
+                        manager.toggleReminder(id: nextReminder.id)
+                    } label: {
+                        Image(systemName: "circle")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cyan)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Next Reminder")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundColor(.cyan)
+                        Text(nextReminder.title)
+                            .font(.system(size: 9.5, weight: .medium))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                    }
+                } else if let nextLocal = manager.localTodos.first(where: { !$0.isCompleted }) {
+                    Button {
+                        manager.toggleReminder(id: nextLocal.id.uuidString)
+                    } label: {
+                        Image(systemName: "circle")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cyan)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pending Task")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundColor(.cyan)
+                        Text(nextLocal.text)
+                            .font(.system(size: 9.5, weight: .medium))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                    }
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.green)
+                    Text("All Tasks Completed")
+                        .font(.system(size: 9.5, weight: .medium))
+                        .foregroundColor(.white.opacity(0.70))
+                }
                 
-                Text(manager.note.isEmpty ? "Scratchpad is empty" : manager.note.replacingOccurrences(of: "\n", with: " "))
-                    .font(.system(size: 8.5, weight: .medium))
-                    .foregroundColor(manager.note.isEmpty ? .white.opacity(0.30) : .white.opacity(0.70))
-                    .lineLimit(1)
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: 190)
         }
         .padding(.horizontal, 10)
     }

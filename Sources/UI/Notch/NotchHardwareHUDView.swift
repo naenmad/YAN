@@ -168,7 +168,6 @@ public struct NotchHardwareHUDView: View {
                 
                 // Battery Metric Large Readout
                 HStack(alignment: .center, spacing: 12) {
-                    // Big percentage
                     Text("\(stats.batteryLevel)%")
                         .font(.system(size: 28, weight: .heavy, design: .rounded))
                         .foregroundColor(stats.isCharging ? .green : .white)
@@ -252,59 +251,132 @@ public struct NotchHardwareHUDView: View {
 
 public struct NotchCompactHardwareHUDView: View {
     @ObservedObject private var stats = SystemStatsManager.shared
+    @ObservedObject private var store = NotchSettingsStore.shared
     
     public init() {}
     
     public var body: some View {
+        let hoverH = CGFloat(store.preferences.hoverHeight)
+        let dividerH = max(20.0, hoverH - 22.0)
+        
         HStack(spacing: 12) {
-            // CPU Readout
-            HStack(spacing: 5) {
-                Image(systemName: "cpu")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.cyan)
-                Text(String(format: "CPU %.0f%%", stats.cpuUsage))
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+            // SISI KIRI: Compute & Memory Micro Telemetry
+            HStack(spacing: 12) {
+                // CPU Micro Widget
+                HStack(spacing: 7) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.cyan.opacity(0.15))
+                            .frame(width: 26, height: 26)
+                        Image(systemName: "cpu")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.cyan)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 3) {
+                            Text("CPU")
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text(String(format: "%.0f%%", stats.cpuUsage))
+                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                .foregroundColor(.cyan)
+                        }
+                        
+                        // Micro progress bar
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.12))
+                                .frame(width: 60, height: 3.5)
+                            Capsule()
+                                .fill(Color.cyan)
+                                .frame(width: max(2, 60.0 * CGFloat(min(1.0, stats.cpuUsage / 100.0))), height: 3.5)
+                        }
+                    }
+                }
+                
+                // RAM Micro Widget
+                HStack(spacing: 7) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.purple.opacity(0.15))
+                            .frame(width: 26, height: 26)
+                        Image(systemName: "memorychip")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.purple)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 3) {
+                            Text("RAM")
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text(String(format: "%.1fG", stats.ramUsedGB))
+                                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                        
+                        // Micro progress bar
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.12))
+                                .frame(width: 60, height: 3.5)
+                            Capsule()
+                                .fill(LinearGradient(colors: [.purple, .pink], startPoint: .leading, endPoint: .trailing))
+                                .frame(width: max(2, 60.0 * CGFloat(min(1.0, stats.ramPercentage / 100.0))), height: 3.5)
+                        }
+                    }
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             
+            // DIVIDER TENGAH
             Rectangle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 1, height: 12)
+                .fill(Color.white.opacity(0.10))
+                .frame(width: 1, height: dividerH)
             
-            // RAM Readout
-            HStack(spacing: 5) {
-                Image(systemName: "memorychip")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.85))
-                Text(String(format: "RAM %.1fG", stats.ramUsedGB))
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+            // SISI KANAN: Battery & Power State Glance
+            HStack(spacing: 9) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(stats.isCharging ? Color.green.opacity(0.18) : Color.white.opacity(0.06))
+                        .frame(width: 26, height: 26)
+                    Image(systemName: stats.isCharging ? "bolt.batteryblock.fill" : "battery.100")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(stats.isCharging ? .green : .white)
+                }
+                
+                VStack(alignment: .leading, spacing: 1.5) {
+                    HStack(spacing: 4) {
+                        Text("\(stats.batteryLevel)%")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(stats.isCharging ? .green : .white)
+                        
+                        if stats.isCharging {
+                            Text("AC")
+                                .font(.system(size: 7, weight: .heavy))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 3.5)
+                                .padding(.vertical, 0.5)
+                                .background(Color.green)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(stats.isLowPowerMode ? Color.yellow : Color.green)
+                            .frame(width: 3.5, height: 3.5)
+                        Text(stats.isLowPowerMode ? "Low Power" : "Optimal")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundColor(.white.opacity(0.45))
+                    }
+                }
+                
+                Spacer(minLength: 0)
             }
-            
-            Rectangle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 1, height: 12)
-            
-            // Battery Readout
-            HStack(spacing: 5) {
-                Image(systemName: stats.isCharging ? "bolt.fill" : "battery.100")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(stats.isCharging ? .green : .white)
-                Text("\(stats.batteryLevel)%")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundColor(stats.isCharging ? .green : .white)
-            }
-            
-            if stats.isCharging {
-                Text("CHARGING")
-                    .font(.system(size: 7, weight: .heavy))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Color.green)
-                    .clipShape(Capsule())
-            }
+            .frame(width: 155)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 10)
     }
 }

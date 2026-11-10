@@ -246,99 +246,110 @@ public struct NotchQuickToolsView: View {
 
 public struct NotchCompactQuickToolsView: View {
     @ObservedObject private var tools = QuickToolsManager.shared
+    @ObservedObject private var store = NotchSettingsStore.shared
     
     public init() {}
     
     public var body: some View {
+        let hoverH = CGFloat(store.preferences.hoverHeight)
+        let dividerH = max(20.0, hoverH - 22.0)
+        
         HStack(spacing: 12) {
-            // Keep Awake Button
-            Button {
-                tools.toggleCaffeine()
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "display")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(tools.isCaffeineActive ? .cyan : .white.opacity(0.85))
-                    Text(tools.isCaffeineActive ? "Awake" : "Sleep OK")
-                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                        .foregroundColor(tools.isCaffeineActive ? .cyan : .white.opacity(0.70))
+            // SISI KIRI: System Controls (Keep Awake & Mic)
+            HStack(spacing: 8) {
+                // Keep Awake Toggle Button
+                Button {
+                    tools.toggleCaffeine()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "display")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(tools.isCaffeineActive ? .cyan : .white.opacity(0.85))
+                        Text(tools.isCaffeineActive ? "Awake: ON" : "Awake: OFF")
+                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(tools.isCaffeineActive ? .cyan : .white.opacity(0.70))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4.5)
+                    .background(tools.isCaffeineActive ? Color.cyan.opacity(0.18) : Color.white.opacity(0.06))
+                    .clipShape(Capsule())
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(tools.isCaffeineActive ? Color.cyan.opacity(0.18) : Color.white.opacity(0.06))
-                .clipShape(Capsule())
+                .buttonStyle(.plain)
+                
+                // Mic Mute Toggle Button
+                Button {
+                    tools.toggleMicMute()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: tools.isMicMuted ? "mic.slash.fill" : "mic.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(tools.isMicMuted ? .red : .white.opacity(0.85))
+                        Text(tools.isMicMuted ? "Muted" : "Mic Active")
+                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(tools.isMicMuted ? .red : .white.opacity(0.70))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4.5)
+                    .background(tools.isMicMuted ? Color.red.opacity(0.18) : Color.white.opacity(0.06))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
             
+            // DIVIDER TENGAH
             Rectangle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 1, height: 12)
+                .fill(Color.white.opacity(0.10))
+                .frame(width: 1, height: dividerH)
             
-            // Mic Button
-            Button {
-                tools.toggleMicMute()
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: tools.isMicMuted ? "mic.slash.fill" : "mic.fill")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(tools.isMicMuted ? .red : .white.opacity(0.85))
-                    Text(tools.isMicMuted ? "Muted" : "Mic On")
-                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                        .foregroundColor(tools.isMicMuted ? .red : .white.opacity(0.70))
+            // SISI KANAN: Utilities (Eyedropper & Screen Snip)
+            HStack(spacing: 8) {
+                // Eyedropper Button
+                Button {
+                    tools.pickScreenColor()
+                } label: {
+                    HStack(spacing: 5) {
+                        if let hex = tools.lastSampledHex, let col = Color(hex: hex) {
+                            RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+                                .fill(col)
+                                .frame(width: 12, height: 12)
+                        } else {
+                            Image(systemName: "eyedropper")
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                        Text(tools.lastSampledHex ?? "Picker")
+                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .foregroundColor(tools.lastSampledHex != nil ? .cyan : .white.opacity(0.75))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4.5)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(Capsule())
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(tools.isMicMuted ? Color.red.opacity(0.18) : Color.white.opacity(0.06))
-                .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            
-            Rectangle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 1, height: 12)
-            
-            // Eyedropper Button
-            Button {
-                tools.pickScreenColor()
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "eyedropper")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.85))
-                    Text(tools.lastSampledHex ?? "Picker")
-                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                        .foregroundColor(tools.lastSampledHex != nil ? .cyan : .white.opacity(0.70))
+                .buttonStyle(.plain)
+                
+                // Screen Snip Button
+                Button {
+                    tools.triggerScreenCapture()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "viewfinder")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.85))
+                        Text("Snip")
+                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.75))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4.5)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(Capsule())
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.06))
-                .clipShape(Capsule())
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            
-            Rectangle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 1, height: 12)
-            
-            // Screen Snip Button
-            Button {
-                tools.triggerScreenCapture()
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "viewfinder")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.85))
-                    Text("Snip")
-                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.70))
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.06))
-                .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
+            .frame(width: 165)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 10)
     }
 }
