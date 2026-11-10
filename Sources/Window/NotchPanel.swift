@@ -37,6 +37,22 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
         // Di luar siluet notch, klik/scroll tembus ke jendela/menu bar di belakangnya
         return nil
     }
+    
+    override func scrollWheel(with event: NSEvent) {
+        // Tangani gestur swipe 2-jari trackpad untuk berganti halaman (Dashboard <-> Drop Zone)
+        if NotchPageManager.shared.handleScrollWheel(event: event) {
+            return
+        }
+        super.scrollWheel(with: event)
+    }
+    
+    override func swipe(with event: NSEvent) {
+        // Tangani gestur swipe native 3-jari jika diaktifkan di macOS
+        if NotchPageManager.shared.handleSwipe(event: event) {
+            return
+        }
+        super.swipe(with: event)
+    }
 }
 
 @MainActor

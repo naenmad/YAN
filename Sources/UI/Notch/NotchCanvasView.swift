@@ -99,23 +99,23 @@ struct MediaScrubberView: View {
 
 // MARK: - NotchCanvasView
 
-public enum NotchPage: Int, CaseIterable {
-    case dashboard = 0 // Media Player + Calendar & Schedule
-    case dropZone = 1  // AirDrop Target + Temporary Stash Shelf
-}
-
 public struct NotchCanvasView: View {
     @ObservedObject var store: NotchSettingsStore = .shared
     @ObservedObject var media: MediaManager = .shared
     @ObservedObject var shelf: ShelfManager = .shared
+    @ObservedObject var pageManager: NotchPageManager = .shared
     
     @State private var isHovered: Bool = false
     @State private var isExpanded: Bool = false
-    @State private var activePage: NotchPage = .dashboard
     
-    // Automatic collapse monitoring & file drag targeting
+    private var activePage: NotchPage {
+        pageManager.activePage
+    }
+    
+    // Automatic collapse monitoring, trackpad 2-finger swipe & file drag targeting
     @State private var outsideClickMonitor: Any? = nil
     @State private var outsideLocalMonitor: Any? = nil
+    @State private var trackpadSwipeMonitor: Any? = nil
     @State private var isGlobalDragTargeted: Bool = false
     
     private var hasActiveMedia: Bool {
@@ -285,6 +285,20 @@ public struct NotchCanvasView: View {
                     isExpanded.toggle()
                 }
             }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 25)
+                    .onEnded { value in
+                        let dx = value.translation.width
+                        let dy = abs(value.translation.height)
+                        if abs(dx) > dy * 1.2 {
+                            if dx < -25 {
+                                pageManager.switchToPage(.dropZone)
+                            } else if dx > 25 {
+                                pageManager.switchToPage(.dashboard)
+                            }
+                        }
+                    }
+            )
             .contextMenu {
                 Button(isExpanded ? "Collapse Notch" : "Enlarge Notch") {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -312,6 +326,9 @@ public struct NotchCanvasView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            startTrackpadSwipeMonitoring()
+        }
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)) { _ in
             isHovered = false
             isExpanded = false
@@ -325,6 +342,7 @@ public struct NotchCanvasView: View {
         }
         .onDisappear {
             stopOutsideClickMonitoring()
+            stopTrackpadSwipeMonitoring()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
             if isExpanded {
@@ -345,9 +363,37 @@ public struct NotchCanvasView: View {
             if targeted {
                 withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
                     isExpanded = true
-                    activePage = .dropZone
+                    pageManager.switchToPage(.dropZone)
                 }
             }
+        }
+    }
+    
+    // MARK: - Trackpad 2-Finger Swipe Handling
+    
+    private func startTrackpadSwipeMonitoring() {
+        stopTrackpadSwipeMonitoring()
+        trackpadSwipeMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .swipe]) { event in
+            // Intersep swipe horizontal trackpad hanya saat kursor mouse berada di area notch (hovering atau expanded)
+            guard self.isHovered || self.isExpanded else { return event }
+            
+            if event.type == .scrollWheel {
+                if self.pageManager.handleScrollWheel(event: event) {
+                    return nil
+                }
+            } else if event.type == .swipe {
+                if self.pageManager.handleSwipe(event: event) {
+                    return nil
+                }
+            }
+            return event
+        }
+    }
+    
+    private func stopTrackpadSwipeMonitoring() {
+        if let monitor = trackpadSwipeMonitor {
+            NSEvent.removeMonitor(monitor)
+            trackpadSwipeMonitor = nil
         }
     }
     
@@ -429,9 +475,7 @@ public struct NotchCanvasView: View {
                 // Page Switcher Capsule
                 HStack(spacing: 2) {
                     Button {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                            activePage = .dashboard
-                        }
+                        pageManager.switchToPage(.dashboard)
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "square.grid.2x2.fill")
@@ -448,9 +492,7 @@ public struct NotchCanvasView: View {
                     .buttonStyle(.plain)
                     
                     Button {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                            activePage = .dropZone
-                        }
+                        pageManager.switchToPage(.dropZone)
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "tray.and.arrow.down.fill")
@@ -868,9 +910,7 @@ public struct NotchCanvasView: View {
             
             // Hover Page Switcher Button
             Button {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                    activePage = (activePage == .dashboard ? .dropZone : .dashboard)
-                }
+                pageManager.togglePage()
             } label: {
                 ZStack {
                     Circle()
