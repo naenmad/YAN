@@ -6,11 +6,14 @@ public final class MediaManager: ObservableObject {
     public static let shared = MediaManager()
     
     @Published public var currentTrack: MediaTrack?
+    @Published public var previousLyric: String?
     @Published public var currentLyric: String?
+    @Published public var nextLyric: String?
+    @Published public var activeLyrics: [LyricLine] = []
     
-    private var activeLyrics: [LyricLine] = []
     private var lyricTimer: Timer?
     private var fallbackTimer: Timer?
+    private var clearTrackWorkItem: DispatchWorkItem?
     
     // Tracking waktu pemutaran real-time
     private var lastPlaybackTime: TimeInterval = 0
@@ -56,6 +59,10 @@ public final class MediaManager: ObservableObject {
     
     public func handlePayload(_ payload: NowPlayingPayload) {
         if let rawTitle = payload.title, !rawTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Batalkan timer penghapusan track (anti-flicker saat buffering / pergantian lagu)
+            clearTrackWorkItem?.cancel()
+            clearTrackWorkItem = nil
+            
             let title = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
             let artist = (payload.artist ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let album = (payload.album ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -103,21 +110,33 @@ public final class MediaManager: ObservableObject {
             
             self.currentTrack = newTrack
             
-            // Selalu cari lirik untuk semua media yang memiliki judul (baik Apple Music, Spotify, maupun YouTube)
+            // Selalu cari lirik untuk semua media yang memiliki judul
             if previousTrack?.title != title || previousTrack?.artist != artist {
                 self.activeLyrics = []
+                self.previousLyric = nil
                 self.currentLyric = nil
+                self.nextLyric = nil
                 
                 Task {
                     let lyrics = await LyricsService.shared.fetchLyrics(artist: artist, title: title)
                     await MainActor.run {
                         self.activeLyrics = lyrics
-                        if let first = lyrics.first {
-                            self.currentLyric = first.text
-                        }
                         self.updateActiveLyric()
                     }
                 }
+            }
+        } else {
+            // Ketika stream kosong sementara (buffering atau jeda ganti lagu), beri jeda 3 detik sebelum clear
+            if clearTrackWorkItem == nil && currentTrack != nil {
+                let work = DispatchWorkItem { [weak self] in
+                    self?.currentTrack = nil
+                    self?.activeLyrics = []
+                    self?.currentLyric = nil
+                    self?.previousLyric = nil
+                    self?.nextLyric = nil
+                }
+                self.clearTrackWorkItem = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: work)
             }
         }
     }
@@ -183,17 +202,35 @@ public final class MediaManager: ObservableObject {
     }
     
     private func updateActiveLyric() {
-        guard !activeLyrics.isEmpty else { return }
+        guard !activeLyrics.isEmpty else {
+            if currentLyric != nil {
+                previousLyric = nil
+                currentLyric = nil
+                nextLyric = nil
+            }
+            return
+        }
         
         let elapsedSince = isTrackPlaying ? Date().timeIntervalSince(lastPlaybackTimestamp) : 0
         let currentPos = max(0, lastPlaybackTime + elapsedSince)
         
-        Task {
-            if let lyric = await LyricsService.shared.currentLyric(from: activeLyrics, at: currentPos) {
-                await MainActor.run {
-                    self.currentLyric = lyric
-                }
+        var activeIndex: Int? = nil
+        for (idx, line) in activeLyrics.enumerated() {
+            if line.time <= currentPos {
+                activeIndex = idx
+            } else {
+                break
             }
+        }
+        
+        if let idx = activeIndex {
+            self.currentLyric = activeLyrics[idx].text
+            self.previousLyric = idx > 0 ? activeLyrics[idx - 1].text : nil
+            self.nextLyric = idx + 1 < activeLyrics.count ? activeLyrics[idx + 1].text : nil
+        } else if let first = activeLyrics.first {
+            self.currentLyric = first.text
+            self.previousLyric = nil
+            self.nextLyric = activeLyrics.count > 1 ? activeLyrics[1].text : nil
         }
     }
     

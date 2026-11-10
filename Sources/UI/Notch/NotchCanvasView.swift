@@ -12,11 +12,11 @@ public struct NotchCanvasView: View {
         return media.currentTrack != nil && media.currentTrack!.isValid
     }
     
-    // Dimensi adaptif: Resting -> Hover Glance (500x56) -> Clicked Large Island (560x140)
+    // Dimensi adaptif: Resting (200x30) -> Hover Glance (500x56) -> Clicked Large Dashboard (640x205)
     private var currentWidth: CGFloat {
         let base = CGFloat(store.preferences.width)
         if isExpanded {
-            return 560.0
+            return 640.0
         }
         if isHovered && store.preferences.expandOnHover {
             return 500.0
@@ -27,7 +27,7 @@ public struct NotchCanvasView: View {
     private var currentHeight: CGFloat {
         let base = CGFloat(store.preferences.height)
         if isExpanded {
-            return 140.0
+            return 205.0
         }
         if isHovered && store.preferences.expandOnHover {
             return 56.0
@@ -38,7 +38,7 @@ public struct NotchCanvasView: View {
     private var activeCornerRadius: CGFloat {
         let base = CGFloat(store.preferences.cornerRadius)
         if isExpanded {
-            return 22.0
+            return 26.0
         }
         if isHovered && store.preferences.expandOnHover {
             return 16.0
@@ -58,10 +58,10 @@ public struct NotchCanvasView: View {
                 )
                 .fill(Color.black)
                 .shadow(
-                    color: Color.black.opacity(isExpanded ? 0.60 : (isHovered ? 0.40 : 0.0)),
-                    radius: isExpanded ? 18 : 12,
+                    color: Color.black.opacity(isExpanded ? 0.65 : (isHovered ? 0.40 : 0.0)),
+                    radius: isExpanded ? 22 : 12,
                     x: 0,
-                    y: isExpanded ? 8 : 5
+                    y: isExpanded ? 10 : 5
                 )
                 
                 // 2. Faint Rim Hint Outline
@@ -116,12 +116,12 @@ public struct NotchCanvasView: View {
                     .transition(.opacity)
                 }
                 
-                // 4. Large Island State (Saat Diklik / Enlarged)
+                // 4. Large Dashboard State (Saat Diklik / Enlarged 640x205)
                 if isExpanded {
-                    largeIslandContent
+                    largeDashboardContent
                         .transition(.opacity.combined(with: .scale(scale: 0.97)))
                 } else if isHovered && store.preferences.expandOnHover {
-                    // 5. Compact Pod (Saat Hover)
+                    // 5. Compact Pod (Saat Hover 500x56)
                     compactHoverContent
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
@@ -180,174 +180,30 @@ public struct NotchCanvasView: View {
         }
     }
     
-    // MARK: - Large Island Content (Saat Diklik / Enlarged 560x140)
+    // MARK: - Large Dashboard Content (Saat Diklik / Enlarged 640x205)
     
     @ViewBuilder
-    private var largeIslandContent: some View {
+    private var largeDashboardContent: some View {
         HStack(spacing: 16) {
-            // SISI KIRI: Large Media Player Pod (Lebar ~320pt)
-            VStack(alignment: .leading, spacing: 8) {
-                if hasActiveMedia, let track = media.currentTrack {
-                    // Top: Artwork + Title + Artist + Badge
-                    HStack(spacing: 12) {
-                        ZStack(alignment: .bottomTrailing) {
-                            if let art = track.artwork {
-                                Image(nsImage: art)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 48, height: 48)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            } else {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: track.mediaType == .video
-                                                ? [Color.red.opacity(0.8), Color.orange.opacity(0.7)]
-                                                : [Color.purple.opacity(0.8), Color.blue.opacity(0.7)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 48, height: 48)
-                                    .overlay(
-                                        Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
-                                            .font(.system(size: 20))
-                                            .foregroundColor(.white)
-                                    )
-                            }
-                            
-                            if track.mediaType == .video {
-                                Image(systemName: "video.fill")
-                                    .font(.system(size: 8))
-                                    .foregroundColor(.white)
-                                    .padding(3)
-                                    .background(Color.black.opacity(0.85))
-                                    .clipShape(Circle())
-                                    .offset(x: 2, y: 2)
-                            }
-                        }
-                        .shadow(color: Color.black.opacity(0.4), radius: 6, x: 0, y: 3)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(track.title)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            
-                            Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.white.opacity(0.70))
-                                .lineLimit(1)
-                            
-                            Text(track.sourceApp)
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.40))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Color.white.opacity(0.10))
-                                .clipShape(Capsule())
-                        }
-                        
-                        Spacer(minLength: 0)
-                    }
-                    
-                    // Middle: Playback Progress Scrubber
-                    VStack(spacing: 3) {
-                        GeometryReader { geo in
-                            let progress = track.duration > 0 ? min(1.0, max(0.0, media.currentPlaybackPosition / track.duration)) : 0.0
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.white.opacity(0.20))
-                                    .frame(height: 3)
-                                Capsule()
-                                    .fill(Color.cyan)
-                                    .frame(width: geo.size.width * CGFloat(progress), height: 3)
-                            }
-                        }
-                        .frame(height: 3)
-                        
-                        HStack {
-                            Text(formatTime(media.currentPlaybackPosition))
-                            Spacer()
-                            Text(formatTime(track.duration))
-                        }
-                        .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.45))
-                    }
-                    
-                    // Bottom: Live Lyrics & Controls
-                    HStack(spacing: 12) {
-                        // Live Lyrics preview
-                        if let lyric = media.currentLyric, !lyric.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 9))
-                                Text(lyric)
-                                    .lineLimit(1)
-                            }
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
-                            .foregroundColor(.cyan)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        } else {
-                            Text("Ready")
-                                .font(.system(size: 9.5))
-                                .foregroundColor(.white.opacity(0.35))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        
-                        // Controls: Prev, Play/Pause, Next
-                        HStack(spacing: 8) {
-                            Button {
-                                media.previousTrack()
-                            } label: {
-                                Image(systemName: "backward.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.85))
-                                    .frame(width: 26, height: 26)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button {
-                                media.togglePlayPause()
-                            } label: {
-                                Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.black)
-                                    .frame(width: 28, height: 28)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button {
-                                media.nextTrack()
-                            } label: {
-                                Image(systemName: "forward.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.white.opacity(0.85))
-                                    .frame(width: 26, height: 26)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                } else {
-                    // Standby Pod in Large Mode
-                    largeStandbyMediaPod
-                }
+            // SISI KIRI: Media Player + Dedicated Lyrics Card (Lebar ~330pt)
+            VStack(alignment: .leading, spacing: 10) {
+                // Top: Media Player Controls & Scrubber
+                topMediaSection
+                
+                // Bottom: DEDICATED LYRICS AREA (Sesuai Permintaan User)
+                dedicatedLyricsCard
             }
-            .frame(width: 310)
+            .frame(width: 330)
             
             // DIVIDER
             Rectangle()
-                .fill(Color.white.opacity(0.12))
-                .frame(width: 1, height: 110)
+                .fill(Color.white.opacity(0.10))
+                .frame(width: 1, height: 175)
             
-            // SISI KANAN: Full Month Calendar View (Lebar ~200pt)
+            // SISI KANAN: Calendar Month + Schedule / Jadwal (Lebar ~260pt)
             ZStack(alignment: .topTrailing) {
                 NotchCalendarView(isLarge: true)
-                    .frame(width: 195)
+                    .frame(width: 255)
                 
                 // Tombol collapse kecil di pojok kanan atas
                 Button {
@@ -356,7 +212,7 @@ public struct NotchCanvasView: View {
                     }
                 } label: {
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 8.5, weight: .bold))
                         .foregroundColor(.white.opacity(0.50))
                         .frame(width: 18, height: 18)
                         .background(Color.white.opacity(0.12))
@@ -371,81 +227,259 @@ public struct NotchCanvasView: View {
         .padding(.top, 14)
     }
     
-    // MARK: - Large Standby Media Pod (Saat Idle Diklik)
+    // MARK: - Top Media Section (Di Atas Lirik)
     
     @ViewBuilder
-    private var largeStandbyMediaPod: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
+    private var topMediaSection: some View {
+        if hasActiveMedia, let track = media.currentTrack {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 10) {
+                    // Artwork / Video Thumbnail (Tanpa gradasi aneh)
+                    ZStack(alignment: .bottomTrailing) {
+                        if let art = track.artwork {
+                            Image(nsImage: art)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 44, height: 44)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        } else {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.white.opacity(0.08))
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.white.opacity(0.80))
+                                )
+                        }
+                        
+                        if track.mediaType == .video {
+                            Image(systemName: "video.fill")
+                                .font(.system(size: 7))
+                                .foregroundColor(.white)
+                                .padding(2.5)
+                                .background(Color.black.opacity(0.85))
+                                .clipShape(Circle())
+                                .offset(x: 2, y: 2)
+                        }
+                    }
+                    .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 2)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(track.title)
+                            .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        
+                        Text(track.artist.isEmpty ? track.sourceApp : track.artist)
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.65))
+                            .lineLimit(1)
+                        
+                        Text(track.sourceApp)
+                            .font(.system(size: 8.5, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.40))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Capsule())
+                    }
+                    
+                    Spacer(minLength: 0)
+                    
+                    // Controls: Prev, Play/Pause, Next
+                    HStack(spacing: 6) {
+                        Button {
+                            media.previousTrack()
+                        } label: {
+                            Image(systemName: "backward.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.85))
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            media.togglePlayPause()
+                        } label: {
+                            Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.black)
+                                .frame(width: 26, height: 26)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            media.nextTrack()
+                        } label: {
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.85))
+                                .frame(width: 24, height: 24)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                
+                // Playback Scrubber Bar
+                VStack(spacing: 2) {
+                    GeometryReader { geo in
+                        let progress = track.duration > 0 ? min(1.0, max(0.0, media.currentPlaybackPosition / track.duration)) : 0.0
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.15))
+                                .frame(height: 2.5)
+                            Capsule()
+                                .fill(Color.cyan)
+                                .frame(width: geo.size.width * CGFloat(progress), height: 2.5)
+                        }
+                    }
+                    .frame(height: 2.5)
+                    
+                    HStack {
+                        Text(formatTime(media.currentPlaybackPosition))
+                        Spacer()
+                        Text(formatTime(track.duration))
+                    }
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.40))
+                }
+            }
+        } else {
+            // Standby Media Header (Minimalis, Native, Tanpa Gradasi Ungu-Biru & Tanpa Tulisan Promosi)
+            HStack(spacing: 10) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.purple.opacity(0.7), Color.blue.opacity(0.6)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: 40, height: 40)
                     
                     Image(systemName: "music.note")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.60))
                 }
-                .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
                 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("No Media Playing")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.95))
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.90))
                     
-                    Text("Apple Music, Spotify & YouTube")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.white.opacity(0.55))
+                    Text("Ready for playback")
+                        .font(.system(size: 9.5, weight: .regular))
+                        .foregroundColor(.white.opacity(0.40))
                 }
                 
                 Spacer(minLength: 0)
-            }
-            
-            Text("Play any audio or video to display real-time synced lyrics and playback controls.")
-                .font(.system(size: 9.5, weight: .regular))
-                .foregroundColor(.white.opacity(0.40))
-                .lineLimit(2)
-            
-            HStack(spacing: 8) {
+                
                 Button {
                     media.togglePlayPause()
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "play.fill")
-                        Text("Resume")
-                    }
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.18))
-                    .clipShape(Capsule())
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.80))
+                        .frame(width: 26, height: 26)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .help("Resume Playback")
+            }
+            .frame(height: 52)
+        }
+    }
+    
+    // MARK: - Dedicated Lyrics Card (Di Bawah Media Controls)
+    
+    @ViewBuilder
+    private var dedicatedLyricsCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "quote.bubble.fill")
+                    .font(.system(size: 7.5))
+                    .foregroundColor(.cyan.opacity(0.85))
                 
-                Button {
-                    SettingsWindowController.shared.show()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "gearshape.fill")
-                        Text("Settings")
+                Text("LYRICS")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundColor(.cyan.opacity(0.85))
+                
+                Spacer()
+            }
+            
+            if !media.activeLyrics.isEmpty {
+                // Tampilan 3 Baris Lirik Real-Time Sinkron (Karaoke Style)
+                VStack(alignment: .leading, spacing: 2) {
+                    if let prev = media.previousLyric, !prev.isEmpty {
+                        Text(prev)
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.white.opacity(0.35))
+                            .lineLimit(1)
+                    } else {
+                        Text("...")
+                            .font(.system(size: 8.5))
+                            .foregroundColor(.white.opacity(0.15))
+                            .lineLimit(1)
                     }
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.75))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.10))
-                    .clipShape(Capsule())
+                    
+                    if let current = media.currentLyric, !current.isEmpty {
+                        HStack(spacing: 3) {
+                            Text("♪")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(current)
+                                .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(.cyan)
+                        .lineLimit(1)
+                    } else {
+                        Text("♪ (Instrumental)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.cyan.opacity(0.70))
+                            .lineLimit(1)
+                    }
+                    
+                    if let next = media.nextLyric, !next.isEmpty {
+                        Text(next)
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.white.opacity(0.40))
+                            .lineLimit(1)
+                    } else {
+                        Color.clear.frame(height: 12)
+                    }
                 }
-                .buttonStyle(.plain)
+            } else if hasActiveMedia {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("No synchronized lyrics available")
+                        .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.40))
+                    Text("Lyrics will load automatically if track is found on LRCLIB")
+                        .font(.system(size: 8.5, weight: .regular))
+                        .foregroundColor(.white.opacity(0.25))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Lyrics will sync here automatically")
+                        .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.40))
+                    Text("Start playing any song to see live synchronized lyrics")
+                        .font(.system(size: 8.5, weight: .regular))
+                        .foregroundColor(.white.opacity(0.25))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .frame(height: 75)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                )
+        )
     }
     
     // MARK: - Compact Hover Content (Saat Hover 500x56)
@@ -465,20 +499,12 @@ public struct NotchCanvasView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                         } else {
                             RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: track.mediaType == .video
-                                            ? [Color.red.opacity(0.7), Color.orange.opacity(0.6)]
-                                            : [Color.purple.opacity(0.7), Color.blue.opacity(0.6)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+                                .fill(Color.white.opacity(0.08))
                                 .frame(width: 38, height: 38)
                                 .overlay(
                                     Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
                                         .font(.system(size: 15))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.white.opacity(0.80))
                                 )
                         }
                         
@@ -557,11 +583,11 @@ public struct NotchCanvasView: View {
                 HStack(spacing: 9) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(LinearGradient(colors: [Color.purple.opacity(0.6), Color.blue.opacity(0.5)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(Color.white.opacity(0.06))
                             .frame(width: 32, height: 32)
                         Image(systemName: "music.note")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.white.opacity(0.60))
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
@@ -569,9 +595,9 @@ public struct NotchCanvasView: View {
                             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .foregroundColor(.white.opacity(0.92))
                             .lineLimit(1)
-                        Text("Click notch to enlarge")
+                        Text("Click notch to open dashboard")
                             .font(.system(size: 8.5, weight: .regular))
-                            .foregroundColor(.white.opacity(0.50))
+                            .foregroundColor(.white.opacity(0.40))
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -583,7 +609,7 @@ public struct NotchCanvasView: View {
                             .font(.system(size: 11))
                             .foregroundColor(.white.opacity(0.85))
                             .frame(width: 24, height: 24)
-                            .background(Color.white.opacity(0.15))
+                            .background(Color.white.opacity(0.12))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -593,7 +619,7 @@ public struct NotchCanvasView: View {
             
             // DIVIDER
             Rectangle()
-                .fill(Color.white.opacity(0.12))
+                .fill(Color.white.opacity(0.10))
                 .frame(width: 1, height: 36)
             
             // SISI KANAN: Compact 7-Day Calendar (Lebar ~170pt)

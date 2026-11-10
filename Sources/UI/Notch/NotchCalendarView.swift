@@ -4,6 +4,7 @@ import AppKit
 public struct NotchCalendarView: View {
     public var isLarge: Bool = false
     
+    @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var currentDate = Date()
     @State private var displayedMonth = Date()
     private let calendar = Calendar.current
@@ -33,11 +34,9 @@ public struct NotchCalendarView: View {
         guard let range = calendar.range(of: .day, in: .month, for: displayedMonth) else { return [] }
         
         var days: [Date?] = []
-        // Padding kosong sebelum tanggal 1
         for _ in 1..<firstWeekday {
             days.append(nil)
         }
-        // Tanggal 1 sampai akhir bulan
         for offset in 0..<range.count {
             if let d = calendar.date(byAdding: .day, value: offset, to: firstDay) {
                 days.append(d)
@@ -48,13 +47,13 @@ public struct NotchCalendarView: View {
     
     public var body: some View {
         if isLarge {
-            largeMonthView
+            largeMonthWithScheduleView
         } else {
             compactWeekView
         }
     }
     
-    // MARK: - Compact Week View (Saat Hover)
+    // MARK: - Compact Week View (Saat Hover di Notch)
     
     private var compactWeekView: some View {
         Button {
@@ -110,43 +109,30 @@ public struct NotchCalendarView: View {
         .help("Click to open macOS Calendar")
     }
     
-    // MARK: - Large Full Month View (Saat Diklik / Enlarged)
+    // MARK: - Large Full Month + Schedule View (Saat Diklik / Enlarged 640x200)
     
-    private var largeMonthView: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Header: Month & Year + Navigasi
+    private var largeMonthWithScheduleView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Header: "Nov 26" / "Nov 2026" + Arrow Navigation (Tanpa teks "T..." yang kepotong)
             HStack(spacing: 6) {
-                Text(displayedMonth, format: .dateTime.month(.wide).year())
-                    .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                Text(monthYearHeader(for: displayedMonth))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 
                 Spacer(minLength: 0)
                 
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Button {
                         if let prev = calendar.date(byAdding: .month, value: -1, to: displayedMonth) {
                             displayedMonth = prev
                         }
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(.white.opacity(0.65))
-                            .frame(width: 16, height: 16)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white.opacity(0.70))
+                            .frame(width: 18, height: 18)
                             .background(Color.white.opacity(0.10))
                             .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button {
-                        displayedMonth = Date()
-                    } label: {
-                        Text("Today")
-                            .font(.system(size: 8.5, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.80))
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(Color.white.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
                     }
                     .buttonStyle(.plain)
                     
@@ -156,9 +142,9 @@ public struct NotchCalendarView: View {
                         }
                     } label: {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(.white.opacity(0.65))
-                            .frame(width: 16, height: 16)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white.opacity(0.70))
+                            .frame(width: 18, height: 18)
                             .background(Color.white.opacity(0.10))
                             .clipShape(Circle())
                     }
@@ -169,26 +155,25 @@ public struct NotchCalendarView: View {
                     } label: {
                         Image(systemName: "arrow.up.right")
                             .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(.red.opacity(0.90))
-                            .frame(width: 16, height: 16)
+                            .foregroundColor(.red.opacity(0.95))
+                            .frame(width: 18, height: 18)
                             .background(Color.white.opacity(0.10))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .help("Open Calendar")
+                    .help("Open Apple Calendar")
                 }
             }
             
-            // Weekday Header: S M T W T F S
+            // Weekday Row: S M T W T F S
             HStack(spacing: 2) {
                 ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { symbol in
                     Text(symbol)
                         .font(.system(size: 7.5, weight: .bold))
-                        .foregroundColor(.white.opacity(0.40))
+                        .foregroundColor(.white.opacity(0.35))
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.top, 1)
             
             // 7-Column Days Grid
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
@@ -204,26 +189,93 @@ public struct NotchCalendarView: View {
                                 if isToday {
                                     Circle()
                                         .fill(Color.red)
-                                        .frame(width: 16, height: 16)
+                                        .frame(width: 15, height: 15)
                                 }
                                 
                                 Text("\(dayNumber)")
-                                    .font(.system(size: 8.5, weight: isToday ? .bold : .medium, design: .rounded))
+                                    .font(.system(size: 8, weight: isToday ? .bold : .medium, design: .rounded))
                                     .foregroundColor(isToday ? .white : .white.opacity(0.85))
                             }
-                            .frame(height: 16)
+                            .frame(height: 15)
                         }
                         .buttonStyle(.plain)
                     } else {
-                        // Empty cell for alignment
-                        Color.clear
-                            .frame(height: 16)
+                        Color.clear.frame(height: 15)
                     }
                 }
             }
+            
+            Divider()
+                .overlay(Color.white.opacity(0.08))
+                .padding(.vertical, 1)
+            
+            // BAGIAN JADWAL (SCHEDULE) DI BAWAH KALENDER
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    Text("TODAY'S SCHEDULE")
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.35))
+                    
+                    Spacer()
+                    
+                    Text(currentDate, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(.white.opacity(0.30))
+                }
+                
+                if calendarManager.events.isEmpty {
+                    HStack(spacing: 5) {
+                        Image(systemName: "calendar.badge.checkmark")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(.white.opacity(0.35))
+                        Text("No scheduled events today")
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.white.opacity(0.40))
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
+                } else {
+                    ForEach(calendarManager.events.prefix(2)) { event in
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(event.color)
+                                .frame(width: 5, height: 5)
+                            
+                            Text(event.title)
+                                .font(.system(size: 9.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.90))
+                                .lineLimit(1)
+                            
+                            Spacer(minLength: 0)
+                            
+                            Text(formatTimeRange(start: event.startDate, end: event.endDate, isAllDay: event.isAllDay))
+                                .font(.system(size: 8, weight: .medium, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.40))
+                        }
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+            }
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 4)
         .padding(.vertical, 2)
+    }
+    
+    // Format "Nov 26" atau "Nov 2026" agar ringkas dan tidak pernah truncate
+    private func monthYearHeader(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM ''yy" // e.g. "Nov '26"
+        return formatter.string(from: date)
+    }
+    
+    private func formatTimeRange(start: Date, end: Date, isAllDay: Bool) -> String {
+        if isAllDay { return "All Day" }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "h:mm a"
+        return fmt.string(from: start)
     }
     
     private func dayLetter(for date: Date) -> String {

@@ -32,4 +32,5 @@ targets:
         CFBundleVersion: "1"
         LSUIElement: true
         NSHighResolutionCapable: true
+        NSCalendarsUsageDescription: "YAN displays upcoming schedule and events in the virtual notch."
         LSMinimumSystemVersion: "13.0"
