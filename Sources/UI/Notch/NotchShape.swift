@@ -23,10 +23,14 @@ public struct NotchShape: Shape {
         let ear = max(0, min(earRadius, min(rect.width / 4, rect.height / 2)))
         let corner = max(0, min(cornerRadius, min((rect.width - 2 * ear) / 2, rect.height - ear)))
         
-        // Mulai dari sudut kiri atas (titik pertemuan dengan bezel atas)
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        // Sengaja bleed 3pt ke atas (rect.minY - 3) agar menempel rapat tanpa celah di bezel fisik layar
+        let bleedTop = rect.minY - 3.0
         
-        // 1. Lengkungan luar kiri atas (ear curve)
+        // 0. Mulai dari atas bezel kiri
+        path.move(to: CGPoint(x: rect.minX, y: bleedTop))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        
+        // 1. Lengkungan telinga kiri (ear curve)
         if ear > 0 {
             path.addQuadCurve(
                 to: CGPoint(x: rect.minX + ear, y: rect.minY + ear),
@@ -36,7 +40,7 @@ public struct NotchShape: Shape {
             path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
         }
         
-        // 2. Garis vertikal sisi kiri
+        // 2. Garis vertikal sisi kiri ke bawah
         path.addLine(to: CGPoint(x: rect.minX + ear, y: rect.maxY - corner))
         
         // 3. Lengkungan sudut bawah kiri (bottom-left corner)
@@ -58,19 +62,21 @@ public struct NotchShape: Shape {
             )
         }
         
-        // 6. Garis vertikal sisi kanan
+        // 6. Garis vertikal sisi kanan ke atas
         path.addLine(to: CGPoint(x: rect.maxX - ear, y: rect.minY + ear))
         
-        // 7. Lengkungan luar kanan atas (ear curve)
+        // 7. Lengkungan telinga kanan (ear curve)
         if ear > 0 {
             path.addQuadCurve(
                 to: CGPoint(x: rect.maxX, y: rect.minY),
                 control: CGPoint(x: rect.maxX - ear, y: rect.minY)
             )
+        } else {
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
         }
         
-        // 8. Menutup kembali ke kiri atas
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        // 8. Menutup kembali ke atas bezel kanan
+        path.addLine(to: CGPoint(x: rect.maxX, y: bleedTop))
         path.closeSubpath()
         
         return path
