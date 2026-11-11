@@ -76,7 +76,7 @@ public struct NotchCameraView: View {
     
     public var body: some View {
         HStack(spacing: 14) {
-            // SISI KIRI: Live Viewfinder (Aspect Ratio 16:9 / 4:3 Murni Bersih Tanpa Badge Alay)
+            // SISI KIRI: Live Viewfinder Murni (16:9 / 4:3)
             viewfinderSection
                 .frame(width: viewfinderWidth, height: viewfinderHeight)
             
@@ -85,7 +85,7 @@ public struct NotchCameraView: View {
                 .fill(Color.white.opacity(0.08))
                 .frame(width: 1, height: 104)
             
-            // SISI KANAN: Apple-Style Shutter & Minimal Controls
+            // SISI KANAN: Shutter & Kontrol Minimalis
             controlsSection
                 .frame(maxWidth: .infinity, maxHeight: viewfinderHeight)
         }
@@ -99,7 +99,7 @@ public struct NotchCameraView: View {
         }
     }
     
-    // MARK: - Viewfinder Section
+    // MARK: - Viewfinder Section (Murni, Bersih, Tanpa Overlay)
     
     private var viewfinderSection: some View {
         ZStack {
@@ -108,29 +108,23 @@ public struct NotchCameraView: View {
             
             if camera.hasPermission {
                 if camera.isPaused {
-                    // State: Kamera Dijedakan
-                    VStack(spacing: 6) {
+                    VStack(spacing: 5) {
                         Image(systemName: "video.slash")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white.opacity(0.35))
+                            .font(.system(size: 18))
+                            .foregroundColor(.white.opacity(0.30))
                         Text("Paused")
-                            .font(.system(size: 9.5, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.40))
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.35))
                     }
                 } else {
-                    // Live Feed Edge-to-Edge Bersih (Zero Clutter)
                     CameraPreviewView(session: camera.session, isMirrored: camera.isMirrored)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             } else if camera.isPermissionDenied {
-                VStack(spacing: 7) {
-                    Image(systemName: "camera.badge.ellipsis")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white.opacity(0.70))
-                    
-                    Text("Camera Access Required")
-                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.85))
+                VStack(spacing: 6) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white.opacity(0.50))
                     
                     Button {
                         camera.openCameraPrivacySettings()
@@ -146,31 +140,25 @@ public struct NotchCameraView: View {
                     .buttonStyle(.plain)
                 }
             } else {
-                VStack(spacing: 7) {
-                    Image(systemName: "camera")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white.opacity(0.80))
-                    
-                    Button {
-                        camera.requestPermission()
-                    } label: {
-                        Text("Enable Camera")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.white)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+                Button {
+                    camera.requestPermission()
+                } label: {
+                    Text("Enable Camera")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.white)
+                        .clipShape(Capsule())
                 }
+                .buttonStyle(.plain)
             }
             
             // Specular Border Rim
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
             
-            // Shutter Flash Animation (Saat Foto Dijepret)
+            // White Shutter Flash
             if camera.snapshotFlash {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.white.opacity(0.90))
@@ -179,26 +167,14 @@ public struct NotchCameraView: View {
         }
     }
     
-    // MARK: - Controls Section (Minimalist Apple Shutter Deck)
+    // MARK: - Controls Section (Sederhana & Rapi)
     
     private var controlsSection: some View {
         VStack(spacing: 8) {
-            // Baris Atas: Info Device & Ratio Picker (16:9 | 4:3)
-            HStack(spacing: 6) {
-                HStack(spacing: 4.5) {
-                    Circle()
-                        .fill(camera.isRunning && !camera.isPaused ? Color.green : Color.orange)
-                        .frame(width: 4.5, height: 4.5)
-                    
-                    Text(camera.cameraName)
-                        .font(.system(size: 9, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.85))
-                        .lineLimit(1)
-                }
+            // Baris Atas: Hanya Ratio Picker [ 16:9 | 4:3 ] (Rapi, tanpa teks alay/titik ijo)
+            HStack {
+                Spacer()
                 
-                Spacer(minLength: 0)
-                
-                // Segmented Ratio Picker (16:9 | 4:3)
                 HStack(spacing: 1) {
                     ForEach(CameraAspectRatio.allCases) { item in
                         Button {
@@ -209,8 +185,8 @@ public struct NotchCameraView: View {
                             Text(item.rawValue)
                                 .font(.system(size: 8, weight: camera.aspectRatio == item ? .bold : .medium))
                                 .foregroundColor(camera.aspectRatio == item ? .white : .white.opacity(0.40))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2.5)
                                 .background(camera.aspectRatio == item ? Color.white.opacity(0.18) : Color.clear)
                                 .clipShape(Capsule())
                         }
@@ -224,7 +200,7 @@ public struct NotchCameraView: View {
             
             Spacer(minLength: 0)
             
-            // Bagian Tengah: Apple Iconic Shutter Button
+            // Bagian Tengah: Shutter Button Bersih
             VStack(spacing: 5) {
                 Button {
                     isShutterPressed = true
@@ -234,26 +210,17 @@ public struct NotchCameraView: View {
                     }
                 } label: {
                     ZStack {
-                        // Outer Ring
                         Circle()
                             .strokeBorder(Color.white.opacity(isShutterHovered ? 0.95 : 0.80), lineWidth: 2.5)
                             .frame(width: 48, height: 48)
                         
-                        // Inner Shutter Plate
                         Circle()
                             .fill(Color.white)
                             .frame(width: 38, height: 38)
                             .overlay(
-                                Image(systemName: "camera.fill")
+                                Image(systemName: camera.snapshotMessage != nil ? "checkmark" : "camera.fill")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.black)
-                                    .opacity(camera.snapshotMessage != nil ? 0 : 0.85)
-                            )
-                            .overlay(
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .heavy))
-                                    .foregroundColor(.green)
-                                    .opacity(camera.snapshotMessage != nil ? 1 : 0)
                             )
                     }
                     .scaleEffect(isShutterPressed ? 0.92 : (isShutterHovered ? 1.04 : 1.0))
@@ -264,20 +231,17 @@ public struct NotchCameraView: View {
                 .onHover { hovering in
                     isShutterHovered = hovering
                 }
-                .help("Take photo & copy to clipboard")
                 
-                // Status Label
-                Text(camera.snapshotMessage ?? "Snap Photo")
+                Text(camera.snapshotMessage ?? "Take Photo")
                     .font(.system(size: 8.5, weight: camera.snapshotMessage != nil ? .bold : .medium, design: .rounded))
-                    .foregroundColor(camera.snapshotMessage != nil ? .cyan : .white.opacity(0.50))
+                    .foregroundColor(camera.snapshotMessage != nil ? .cyan : .white.opacity(0.45))
                     .animation(.easeInOut(duration: 0.2), value: camera.snapshotMessage)
             }
             
             Spacer(minLength: 0)
             
-            // Baris Bawah: Utility Controls (Mirror & Sleep)
+            // Baris Bawah: Dua Tombol Utility Sederhana
             HStack(spacing: 8) {
-                // Mirror Mode Button
                 Button {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
                         camera.toggleMirror()
@@ -290,15 +254,13 @@ public struct NotchCameraView: View {
                             .font(.system(size: 8, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(camera.isMirrored ? .white : .white.opacity(0.50))
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 9)
                     .padding(.vertical, 3.5)
                     .background(Color.white.opacity(camera.isMirrored ? 0.12 : 0.05))
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help("Toggle mirror flip")
                 
-                // Sleep / Pause Button
                 Button {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
                         camera.togglePause()
@@ -307,17 +269,16 @@ public struct NotchCameraView: View {
                     HStack(spacing: 4) {
                         Image(systemName: camera.isPaused ? "play.fill" : "pause.fill")
                             .font(.system(size: 7.5))
-                        Text(camera.isPaused ? "Resume" : "Sleep")
+                        Text(camera.isPaused ? "Resume" : "Pause")
                             .font(.system(size: 8, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(camera.isPaused ? .orange : .white.opacity(0.50))
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 9)
                     .padding(.vertical, 3.5)
                     .background(Color.white.opacity(camera.isPaused ? 0.12 : 0.05))
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help("Turn off camera sensor")
             }
         }
     }
@@ -337,7 +298,7 @@ public struct NotchCompactCameraView: View {
         let dividerH = max(20.0, hoverH - 26.0)
         
         HStack(spacing: 12) {
-            // SISI KIRI: Mini Viewfinder Peek + Label Bersih
+            // SISI KIRI: Mini Viewfinder Peek + Label Sederhana (Tanpa Titik Ijo)
             HStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -349,7 +310,7 @@ public struct NotchCompactCameraView: View {
                     } else {
                         Image(systemName: "camera")
                             .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.60))
+                            .foregroundColor(.white.opacity(0.50))
                     }
                     
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -357,22 +318,9 @@ public struct NotchCompactCameraView: View {
                 }
                 .frame(width: 44, height: 26) // 16:9 mini peek (~44x26)
                 
-                VStack(alignment: .leading, spacing: 1.5) {
-                    HStack(spacing: 4) {
-                        Text("Notch Mirror")
-                            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white)
-                        
-                        Circle()
-                            .fill(camera.isRunning && !camera.isPaused ? Color.green : Color.orange)
-                            .frame(width: 3.5, height: 3.5)
-                    }
-                    
-                    Text(camera.cameraName)
-                        .font(.system(size: 7.5, weight: .regular))
-                        .foregroundColor(.white.opacity(0.40))
-                        .lineLimit(1)
-                }
+                Text("Mirror")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.90))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -381,7 +329,7 @@ public struct NotchCompactCameraView: View {
                 .fill(Color.white.opacity(0.10))
                 .frame(width: 1, height: dividerH)
             
-            // SISI KANAN: Compact Apple Shutter Button
+            // SISI KANAN: Compact Shutter Button
             HStack(spacing: 7) {
                 Button {
                     camera.capturePhoto()
@@ -410,7 +358,7 @@ public struct NotchCompactCameraView: View {
                     isShutterHovered = hovering
                 }
             }
-            .frame(width: 130, alignment: .trailing)
+            .frame(width: 110, alignment: .trailing)
         }
         .frame(maxWidth: .infinity, maxHeight: hoverH, alignment: .center)
         .padding(.horizontal, 10)
