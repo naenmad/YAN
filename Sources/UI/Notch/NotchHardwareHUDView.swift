@@ -257,7 +257,7 @@ public struct NotchCompactHardwareHUDView: View {
     
     public var body: some View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
-        let dividerH = max(20.0, hoverH - 22.0)
+        let dividerH = max(20.0, hoverH - 26.0)
         
         HStack(spacing: 12) {
             // SISI KIRI: Compute & Memory Micro Telemetry
@@ -332,7 +332,7 @@ public struct NotchCompactHardwareHUDView: View {
             
             // DIVIDER TENGAH
             Rectangle()
-                .fill(Color.white.opacity(0.10))
+                .fill(Color.white.opacity(0.12))
                 .frame(width: 1, height: dividerH)
             
             // SISI KANAN: Battery & Power State Glance
@@ -377,6 +377,7 @@ public struct NotchCompactHardwareHUDView: View {
             }
             .frame(width: 155)
         }
+        .frame(maxWidth: .infinity, maxHeight: hoverH, alignment: .center)
         .padding(.horizontal, 10)
     }
 }

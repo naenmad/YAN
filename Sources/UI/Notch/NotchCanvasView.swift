@@ -860,7 +860,6 @@ public struct NotchCanvasView: View {
     @ViewBuilder
     private var compactHoverContent: some View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
-        let topPad = max(4.0, (hoverH - 40.0) / 2.0)
         
         Group {
             switch activePage {
@@ -885,7 +884,7 @@ public struct NotchCanvasView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.top, topPad)
+        .frame(maxWidth: .infinity, maxHeight: hoverH, alignment: .center)
     }
     
     // MARK: - Compact Dashboard Glance (Hover Page 1)

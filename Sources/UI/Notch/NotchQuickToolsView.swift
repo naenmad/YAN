@@ -252,7 +252,7 @@ public struct NotchCompactQuickToolsView: View {
     
     public var body: some View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
-        let dividerH = max(20.0, hoverH - 22.0)
+        let dividerH = max(20.0, hoverH - 26.0)
         
         HStack(spacing: 12) {
             // SISI KIRI: System Controls (Keep Awake & Mic)
@@ -270,7 +270,7 @@ public struct NotchCompactQuickToolsView: View {
                             .foregroundColor(tools.isCaffeineActive ? .cyan : .white.opacity(0.70))
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4.5)
+                    .padding(.vertical, 5)
                     .background(tools.isCaffeineActive ? Color.cyan.opacity(0.18) : Color.white.opacity(0.06))
                     .clipShape(Capsule())
                 }
@@ -289,7 +289,7 @@ public struct NotchCompactQuickToolsView: View {
                             .foregroundColor(tools.isMicMuted ? .red : .white.opacity(0.70))
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4.5)
+                    .padding(.vertical, 5)
                     .background(tools.isMicMuted ? Color.red.opacity(0.18) : Color.white.opacity(0.06))
                     .clipShape(Capsule())
                 }
@@ -299,7 +299,7 @@ public struct NotchCompactQuickToolsView: View {
             
             // DIVIDER TENGAH
             Rectangle()
-                .fill(Color.white.opacity(0.10))
+                .fill(Color.white.opacity(0.12))
                 .frame(width: 1, height: dividerH)
             
             // SISI KANAN: Utilities (Eyedropper & Screen Snip)
@@ -323,7 +323,7 @@ public struct NotchCompactQuickToolsView: View {
                             .foregroundColor(tools.lastSampledHex != nil ? .cyan : .white.opacity(0.75))
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4.5)
+                    .padding(.vertical, 5)
                     .background(Color.white.opacity(0.06))
                     .clipShape(Capsule())
                 }
@@ -342,7 +342,7 @@ public struct NotchCompactQuickToolsView: View {
                             .foregroundColor(.white.opacity(0.75))
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4.5)
+                    .padding(.vertical, 5)
                     .background(Color.white.opacity(0.06))
                     .clipShape(Capsule())
                 }
@@ -350,6 +350,7 @@ public struct NotchCompactQuickToolsView: View {
             }
             .frame(width: 165)
         }
+        .frame(maxWidth: .infinity, maxHeight: hoverH, alignment: .center)
         .padding(.horizontal, 10)
     }
 }
