@@ -103,6 +103,60 @@ public enum DashboardRightTab: String, CaseIterable, Identifiable {
     public var id: String { rawValue }
 }
 
+// MARK: - Animated Audio Waveform Bars (Resting Notch Media)
+
+public struct AudioWaveformBars: View {
+    public let isPlaying: Bool
+    @State private var bar1: CGFloat = 3
+    @State private var bar2: CGFloat = 7
+    @State private var bar3: CGFloat = 4
+    
+    public init(isPlaying: Bool) {
+        self.isPlaying = isPlaying
+    }
+    
+    public var body: some View {
+        HStack(alignment: .bottom, spacing: 1.8) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Color.green)
+                .frame(width: 2, height: bar1)
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Color.green)
+                .frame(width: 2, height: bar2)
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Color.green)
+                .frame(width: 2, height: bar3)
+        }
+        .frame(height: 10, alignment: .bottom)
+        .onAppear {
+            updateAnimation()
+        }
+        .onChange(of: isPlaying) { _ in
+            updateAnimation()
+        }
+    }
+    
+    private func updateAnimation() {
+        if isPlaying {
+            withAnimation(.easeInOut(duration: 0.40).repeatForever(autoreverses: true)) {
+                bar1 = 9
+            }
+            withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true).delay(0.12)) {
+                bar2 = 10
+            }
+            withAnimation(.easeInOut(duration: 0.48).repeatForever(autoreverses: true).delay(0.06)) {
+                bar3 = 8
+            }
+        } else {
+            withAnimation(.easeOut(duration: 0.25)) {
+                bar1 = 3
+                bar2 = 4
+                bar3 = 3
+            }
+        }
+    }
+}
+
 // MARK: - NotchCanvasView
 
 public struct NotchCanvasView: View {
@@ -232,9 +286,7 @@ public struct NotchCanvasView: View {
                             
                             Spacer()
                             
-                            Circle()
-                                .fill(track.isPlaying ? Color.green : Color.orange)
-                                .frame(width: 4, height: 4)
+                            AudioWaveformBars(isPlaying: track.isPlaying)
                         }
                         .padding(.horizontal, 14)
                         .padding(.top, 7)
@@ -244,8 +296,12 @@ public struct NotchCanvasView: View {
                 
                 // 4. Large Clicked State (580x148)
                 if isExpanded {
-                    largeUnifiedContent
-                        .transition(.opacity.combined(with: .scale(scale: 0.97)))
+                    VStack(spacing: 5) {
+                        largeUnifiedContent
+                        pageIndicatorBar
+                    }
+                    .padding(.bottom, 6)
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
                 } else if isHovered && store.preferences.expandOnHover {
                     // 5. Compact Hover State (500x56)
                     compactHoverContent
@@ -320,6 +376,11 @@ public struct NotchCanvasView: View {
         .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)) { _ in
             isHovered = false
             isExpanded = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleNotchExpansion)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                isExpanded.toggle()
+            }
         }
         .onChange(of: isExpanded) { expanded in
             if expanded {
@@ -407,9 +468,67 @@ public struct NotchCanvasView: View {
             handleOutsideClick(event: event)
         }
         
-        outsideLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
+        outsideLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { event in
+            if event.type == .keyDown {
+                if handleKeyDown(event: event) {
+                    return nil
+                }
+                return event
+            }
             handleOutsideClick(event: event)
             return event
+        }
+    }
+    
+    private func handleKeyDown(event: NSEvent) -> Bool {
+        guard isExpanded else { return false }
+        
+        // Escape collapses the notch
+        if event.keyCode == 53 {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                isExpanded = false
+            }
+            return true
+        }
+        
+        // If editing in a text field or text view (e.g. scratchpad), do not intercept normal typing
+        if let responder = NSApp.keyWindow?.firstResponder, responder is NSTextView || responder is NSTextField {
+            return false
+        }
+        
+        switch event.keyCode {
+        case 123: // Left Arrow
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                pageManager.previousPage()
+            }
+            return true
+        case 124: // Right Arrow
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                pageManager.nextPage()
+            }
+            return true
+        case 18: // Number 1
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                pageManager.switchToPage(index: 0)
+            }
+            return true
+        case 19: // Number 2
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                pageManager.switchToPage(index: 1)
+            }
+            return true
+        case 20: // Number 3
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                pageManager.switchToPage(index: 2)
+            }
+            return true
+        case 21: // Number 4
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                pageManager.switchToPage(index: 3)
+            }
+            return true
+        default:
+            return false
         }
     }
     
@@ -621,7 +740,7 @@ public struct NotchCanvasView: View {
         let currentW = CGFloat(store.preferences.clickedWidth)
         let currentH = CGFloat(store.preferences.clickedHeight)
         let availableW = max(360.0, currentW - 57) // horizontal padding 28 + spacing 28 + divider 1
-        let dividerHeight = max(70.0, currentH - 28)
+        let dividerHeight = max(60.0, currentH - 38)
         let page = pageManager.currentCustomPage
         
         Group {
@@ -708,6 +827,37 @@ public struct NotchCanvasView: View {
                 .transition(.opacity)
             }
         }
+    }
+    
+    // MARK: - Notch Page Indicator Bar
+    
+    @ViewBuilder
+    private var pageIndicatorBar: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<4, id: \.self) { index in
+                Capsule()
+                    .fill(pageManager.activePageIndex == index ? Color.cyan : Color.white.opacity(0.25))
+                    .frame(
+                        width: pageManager.activePageIndex == index ? 14 : 4.5,
+                        height: 4
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                            pageManager.switchToPage(index: index)
+                        }
+                    }
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.35))
+                .overlay(
+                    Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+                )
+        )
     }
     
     // MARK: - Dashboard Media Left Pod (Player, Artwork, Scrubber & Controls)
