@@ -24,6 +24,8 @@
 		8A1100162D767FCE00000016 /* NotchHardwareHUDView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1100262D767FCE00000026 /* NotchHardwareHUDView.swift */; };
 		8A1100172D767FCE00000017 /* NotchQuickToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1100272D767FCE00000027 /* NotchQuickToolsView.swift */; };
 		8A1100182D767FCE00000018 /* NotchScratchpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1100282D767FCE00000028 /* NotchScratchpadView.swift */; };
+		8A1100192D767FCE00000019 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1100292D767FCE00000029 /* CameraManager.swift */; };
+		8A11001A2D767FCE0000001A /* NotchCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A11002A2D767FCE0000002A /* NotchCameraView.swift */; };
 		5BADD3359911B5B364A27099 /* LyricsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101B63EE770753CC5C7C7C67 /* LyricsService.swift */; };
 		6CF1202F080E9A543ACC8500 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2500DEEC566B1AFE1B638A /* NotchPanel.swift */; };
 		9CD3200D0D60DABEB07BCE1C /* NotchPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2DA98588750D363758C5F84 /* NotchPreferences.swift */; };
@@ -73,6 +75,8 @@
 		8A1100262D767FCE00000026 /* NotchHardwareHUDView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHardwareHUDView.swift; sourceTree = "<group>"; };
 		8A1100272D767FCE00000027 /* NotchQuickToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchQuickToolsView.swift; sourceTree = "<group>"; };
 		8A1100282D767FCE00000028 /* NotchScratchpadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchScratchpadView.swift; sourceTree = "<group>"; };
+		8A1100292D767FCE00000029 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		8A11002A2D767FCE0000002A /* NotchCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchCameraView.swift; sourceTree = "<group>"; };
 		541990810512B99D2DEBD87C /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
 		604205999232AE791CB202FA /* MediaManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaManager.swift; sourceTree = "<group>"; };
 		6F7A79A6407EFA1D0CB4F72B /* MediaRemoteAdapter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = MediaRemoteAdapter.framework; sourceTree = "<group>"; };
@@ -145,6 +149,7 @@
 				8A1100262D767FCE00000026 /* NotchHardwareHUDView.swift */,
 				8A1100272D767FCE00000027 /* NotchQuickToolsView.swift */,
 				8A1100282D767FCE00000028 /* NotchScratchpadView.swift */,
+				8A11002A2D767FCE0000002A /* NotchCameraView.swift */,
 				175875A02D767FCE27D205DF /* NotchCalendarView.swift */,
 				FA0115F5AF3BC20A431229E6 /* NotchCanvasView.swift */,
 				CD4AAA02E5B957883F64F8EC /* NotchShape.swift */,
@@ -213,6 +218,7 @@
 				8A1100222D767FCE00000022 /* SystemStatsManager.swift */,
 				8A1100232D767FCE00000023 /* QuickToolsManager.swift */,
 				8A1100242D767FCE00000024 /* ScratchpadManager.swift */,
+				8A1100292D767FCE00000029 /* CameraManager.swift */,
 				101B63EE770753CC5C7C7C67 /* LyricsService.swift */,
 				604205999232AE791CB202FA /* MediaManager.swift */,
 				B5211A44464246B978D40147 /* MediaRemoteBridge.swift */,
@@ -301,6 +307,8 @@
 				8A1100162D767FCE00000016 /* NotchHardwareHUDView.swift in Sources */,
 				8A1100172D767FCE00000017 /* NotchQuickToolsView.swift in Sources */,
 				8A1100182D767FCE00000018 /* NotchScratchpadView.swift in Sources */,
+				8A1100192D767FCE00000019 /* CameraManager.swift in Sources */,
+				8A11001A2D767FCE0000001A /* NotchCameraView.swift in Sources */,
 				DD4084284FBD939BDCA05329 /* GlobalHotkeyManager.swift in Sources */,
 				5BADD3359911B5B364A27099 /* LyricsService.swift in Sources */,
 				0618BA22829ADFC54BCA2DEB /* MediaManager.swift in Sources */,

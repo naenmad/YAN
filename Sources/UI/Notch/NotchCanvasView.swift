@@ -347,6 +347,13 @@ public struct NotchCanvasView: View {
             } else {
                 stopOutsideClickMonitoring()
             }
+            updateCameraLifecycle()
+        }
+        .onChange(of: activePage) { _ in
+            updateCameraLifecycle()
+        }
+        .onChange(of: isHovered) { _ in
+            updateCameraLifecycle()
         }
         .onDisappear {
             stopOutsideClickMonitoring()
@@ -472,6 +479,15 @@ public struct NotchCanvasView: View {
         }
     }
     
+    private func updateCameraLifecycle() {
+        let shouldCameraRun = activePage == .camera && (isExpanded || isHovered)
+        if shouldCameraRun {
+            CameraManager.shared.startSession()
+        } else {
+            CameraManager.shared.stopSession()
+        }
+    }
+    
     // MARK: - Large Unified Content (Mode Clicked / Expanded)
     
     @ViewBuilder
@@ -518,6 +534,10 @@ public struct NotchCanvasView: View {
                     .transition(.opacity)
             case .scratchpad:
                 NotchScratchpadView()
+                    .padding(.top, 4)
+                    .transition(.opacity)
+            case .camera:
+                NotchCameraView()
                     .padding(.top, 4)
                     .transition(.opacity)
             }
@@ -880,6 +900,9 @@ public struct NotchCanvasView: View {
                     .transition(.opacity)
             case .scratchpad:
                 NotchCompactScratchpadView()
+                    .transition(.opacity)
+            case .camera:
+                NotchCompactCameraView()
                     .transition(.opacity)
             }
         }

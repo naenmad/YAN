@@ -110,6 +110,7 @@ public enum NotchPage: String, Codable, CaseIterable, Identifiable {
     case hardwareHUD = "hardwareHUD"
     case quickTools = "quickTools"
     case scratchpad = "scratchpad"
+    case camera = "camera"
     
     public var id: String { rawValue }
     
@@ -121,6 +122,7 @@ public enum NotchPage: String, Codable, CaseIterable, Identifiable {
         case .hardwareHUD: return "Hardware HUD"
         case .quickTools: return "Quick Tools"
         case .scratchpad: return "Scratchpad"
+        case .camera: return "Notch Mirror"
         }
     }
     
@@ -132,6 +134,7 @@ public enum NotchPage: String, Codable, CaseIterable, Identifiable {
         case .hardwareHUD: return "cpu"
         case .quickTools: return "slider.horizontal.3"
         case .scratchpad: return "note.text"
+        case .camera: return "camera.fill"
         }
     }
     
@@ -143,6 +146,7 @@ public enum NotchPage: String, Codable, CaseIterable, Identifiable {
         case .hardwareHUD: return "Apple Silicon compute load, RAM & battery status"
         case .quickTools: return "Sleep guard, mic privacy, color picker & screen snip"
         case .scratchpad: return "Instant scratchpad thoughts & daily to-do checklist"
+        case .camera: return "Live FaceTime HD vanity mirror & selfie snapshot"
         }
     }
 }
@@ -194,7 +198,8 @@ public struct NotchPreferences: Codable, Equatable {
         NotchPageConfig(page: .clipboard, isEnabled: true),
         NotchPageConfig(page: .hardwareHUD, isEnabled: true),
         NotchPageConfig(page: .quickTools, isEnabled: true),
-        NotchPageConfig(page: .scratchpad, isEnabled: true)
+        NotchPageConfig(page: .scratchpad, isEnabled: true),
+        NotchPageConfig(page: .camera, isEnabled: true)
     ]
     
     public var pagesOrder: [NotchPageConfig] = NotchPreferences.defaultPagesOrder
@@ -261,7 +266,8 @@ public struct NotchPreferences: Codable, Equatable {
                 NotchPageConfig(page: .clipboard, isEnabled: true),
                 NotchPageConfig(page: .hardwareHUD, isEnabled: true),
                 NotchPageConfig(page: .quickTools, isEnabled: true),
-                NotchPageConfig(page: .scratchpad, isEnabled: true)
+                NotchPageConfig(page: .scratchpad, isEnabled: true),
+                NotchPageConfig(page: .camera, isEnabled: true)
             ]
         }
     }
