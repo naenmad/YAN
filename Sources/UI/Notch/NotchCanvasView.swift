@@ -461,7 +461,10 @@ public struct NotchCanvasView: View {
     
     private func updateCameraLifecycle() {
         let currentPage = pageManager.currentCustomPage
-        let hasCamera = currentPage.primaryWidget == .camera || currentPage.secondaryWidget == .camera || currentPage.tertiaryWidget == .camera
+        let hasCamera = currentPage.slot1 == .camera
+            || currentPage.slot2 == .camera
+            || currentPage.slot3 == .camera
+            || currentPage.slot4 == .camera
         let shouldCameraRun = hasCamera && (isExpanded || isHovered)
         if shouldCameraRun {
             CameraManager.shared.startSession()
@@ -626,14 +629,14 @@ public struct NotchCanvasView: View {
             case .dualPod:
                 let podWidth = availableW / 2
                 HStack(spacing: 14) {
-                    NotchWidgetHostView(type: page.primaryWidget, size: .medium)
+                    NotchWidgetHostView(type: page.slot1, size: .medium)
                         .frame(width: podWidth)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.10))
                         .frame(width: 1, height: dividerHeight)
                     
-                    NotchWidgetHostView(type: page.secondaryWidget ?? .lyrics, size: .medium)
+                    NotchWidgetHostView(type: page.slot2 ?? .lyrics, size: .medium)
                         .frame(width: podWidth)
                 }
                 .padding(.horizontal, 14)
@@ -641,31 +644,64 @@ public struct NotchCanvasView: View {
                 .transition(.opacity)
                 
             case .fullStage:
-                NotchWidgetHostView(type: page.primaryWidget, size: .large)
+                NotchWidgetHostView(type: page.slot1, size: .large)
                     .frame(width: availableW)
                     .padding(.horizontal, 14)
                     .padding(.top, 6)
                     .transition(.opacity)
                 
-            case .triplePod:
-                let podW3 = max(100.0, (availableW - 30) / 3)
+            case .trio:
+                // 1x (25%) + 1x (25%) + 2x (50%)
+                let unitW = (availableW - 20) / 4
                 HStack(spacing: 10) {
-                    NotchWidgetHostView(type: page.primaryWidget, size: .small)
-                        .frame(width: podW3)
+                    NotchWidgetHostView(type: page.slot1, size: .small)
+                        .frame(width: unitW)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.10))
                         .frame(width: 1, height: dividerHeight)
                     
-                    NotchWidgetHostView(type: page.secondaryWidget ?? .hardwareHUD, size: .small)
-                        .frame(width: podW3)
+                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .small)
+                        .frame(width: unitW)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.10))
                         .frame(width: 1, height: dividerHeight)
                     
-                    NotchWidgetHostView(type: page.tertiaryWidget ?? .quickTools, size: .small)
-                        .frame(width: podW3)
+                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .medium)
+                        .frame(width: unitW * 2)
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .transition(.opacity)
+                
+            case .quad:
+                // 1x (25%) + 1x (25%) + 1x (25%) + 1x (25%)
+                let unitW = (availableW - 30) / 4
+                HStack(spacing: 10) {
+                    NotchWidgetHostView(type: page.slot1, size: .small)
+                        .frame(width: unitW)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: 1, height: dividerHeight)
+                    
+                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .small)
+                        .frame(width: unitW)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: 1, height: dividerHeight)
+                    
+                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .small)
+                        .frame(width: unitW)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: 1, height: dividerHeight)
+                    
+                    NotchWidgetHostView(type: page.slot4 ?? .scratchpad, size: .small)
+                        .frame(width: unitW)
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 10)
@@ -1084,36 +1120,60 @@ public struct NotchCanvasView: View {
         Group {
             switch page.layout {
             case .fullStage:
-                NotchWidgetHostView(type: page.primaryWidget, size: .small)
+                NotchWidgetHostView(type: page.slot1, size: .small)
                     .transition(.opacity)
                 
             case .dualPod:
                 HStack(spacing: 12) {
-                    NotchWidgetHostView(type: page.primaryWidget, size: .small)
+                    NotchWidgetHostView(type: page.slot1, size: .small)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.secondaryWidget ?? .lyrics, size: .small)
+                    NotchWidgetHostView(type: page.slot2 ?? .lyrics, size: .small)
                 }
                 .transition(.opacity)
                 
-            case .triplePod:
+            case .trio:
                 HStack(spacing: 8) {
-                    NotchWidgetHostView(type: page.primaryWidget, size: .small)
+                    NotchWidgetHostView(type: page.slot1, size: .small)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.secondaryWidget ?? .hardwareHUD, size: .small)
+                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .small)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.tertiaryWidget ?? .quickTools, size: .small)
+                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .small)
+                }
+                .transition(.opacity)
+                
+            case .quad:
+                HStack(spacing: 6) {
+                    NotchWidgetHostView(type: page.slot1, size: .small)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: dividerH)
+                    
+                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .small)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: dividerH)
+                    
+                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .small)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: dividerH)
+                    
+                    NotchWidgetHostView(type: page.slot4 ?? .scratchpad, size: .small)
                 }
                 .transition(.opacity)
             }

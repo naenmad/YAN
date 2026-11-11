@@ -272,17 +272,19 @@ public enum NotchWidgetType: String, Codable, CaseIterable, Identifiable {
 }
 
 public enum PageLayoutType: String, Codable, CaseIterable, Identifiable {
-    case dualPod = "dualPod"       // Left Pod (50%) + Right Pod (50%)
-    case fullStage = "fullStage"   // Full Stage Widget (100%)
-    case triplePod = "triplePod"   // 3 compact widgets (33% each)
+    case dualPod = "dualPod"       // 2x + 2x (50% : 50%)
+    case fullStage = "fullStage"   // 4x (100%)
+    case trio = "trio"             // 1x + 1x + 2x (25% : 25% : 50%)
+    case quad = "quad"             // 1x + 1x + 1x + 1x (25% : 25% : 25% : 25%)
     
     public var id: String { rawValue }
     
     public var label: String {
         switch self {
-        case .dualPod: return "Split Dual-Pod (50 : 50)"
-        case .fullStage: return "Full Stage (100%)"
-        case .triplePod: return "Triple Glance (33 : 33 : 33)"
+        case .dualPod: return "Dual-Pod (2x + 2x)"
+        case .fullStage: return "Full Stage (4x)"
+        case .trio: return "Trio (1x + 1x + 2x)"
+        case .quad: return "Quad (4 × 1x)"
         }
     }
     
@@ -290,36 +292,106 @@ public enum PageLayoutType: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .dualPod: return "rectangle.split.2x1"
         case .fullStage: return "rectangle.fill"
-        case .triplePod: return "rectangle.split.3x1"
+        case .trio: return "rectangle.split.3x1"
+        case .quad: return "square.grid.2x2"
+        }
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw {
+        case "dualPod": self = .dualPod
+        case "fullStage": self = .fullStage
+        case "trio", "triplePod": self = .trio
+        case "quad": self = .quad
+        default: self = .dualPod
         }
     }
 }
 
 public struct CustomNotchPage: Codable, Identifiable, Equatable {
     public var id: String
+    public var pageNumber: Int // Strictly 1, 2, 3, or 4
     public var name: String
     public var isEnabled: Bool
     public var layout: PageLayoutType
-    public var primaryWidget: NotchWidgetType
-    public var secondaryWidget: NotchWidgetType?
-    public var tertiaryWidget: NotchWidgetType?
+    public var slot1: NotchWidgetType
+    public var slot2: NotchWidgetType?
+    public var slot3: NotchWidgetType?
+    public var slot4: NotchWidgetType?
     
     public init(
         id: String = UUID().uuidString,
+        pageNumber: Int,
         name: String,
         isEnabled: Bool = true,
         layout: PageLayoutType = .dualPod,
-        primaryWidget: NotchWidgetType,
-        secondaryWidget: NotchWidgetType? = nil,
-        tertiaryWidget: NotchWidgetType? = nil
+        slot1: NotchWidgetType,
+        slot2: NotchWidgetType? = nil,
+        slot3: NotchWidgetType? = nil,
+        slot4: NotchWidgetType? = nil
     ) {
         self.id = id
+        self.pageNumber = pageNumber
         self.name = name
         self.isEnabled = isEnabled
         self.layout = layout
-        self.primaryWidget = primaryWidget
-        self.secondaryWidget = secondaryWidget
-        self.tertiaryWidget = tertiaryWidget
+        self.slot1 = slot1
+        self.slot2 = slot2
+        self.slot3 = slot3
+        self.slot4 = slot4
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, pageNumber, name, isEnabled, layout
+        case slot1, slot2, slot3, slot4
+        case primaryWidget, secondaryWidget, tertiaryWidget
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        self.pageNumber = try container.decodeIfPresent(Int.self, forKey: .pageNumber) ?? 1
+        self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Page \(pageNumber)"
+        self.isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        self.layout = try container.decodeIfPresent(PageLayoutType.self, forKey: .layout) ?? .dualPod
+        
+        self.slot1 = try container.decodeIfPresent(NotchWidgetType.self, forKey: .slot1)
+            ?? container.decodeIfPresent(NotchWidgetType.self, forKey: .primaryWidget)
+            ?? .nowPlaying
+        self.slot2 = try container.decodeIfPresent(NotchWidgetType.self, forKey: .slot2)
+            ?? container.decodeIfPresent(NotchWidgetType.self, forKey: .secondaryWidget)
+        self.slot3 = try container.decodeIfPresent(NotchWidgetType.self, forKey: .slot3)
+            ?? container.decodeIfPresent(NotchWidgetType.self, forKey: .tertiaryWidget)
+        self.slot4 = try container.decodeIfPresent(NotchWidgetType.self, forKey: .slot4)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(pageNumber, forKey: .pageNumber)
+        try container.encode(name, forKey: .name)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(layout, forKey: .layout)
+        try container.encode(slot1, forKey: .slot1)
+        try container.encodeIfPresent(slot2, forKey: .slot2)
+        try container.encodeIfPresent(slot3, forKey: .slot3)
+        try container.encodeIfPresent(slot4, forKey: .slot4)
+    }
+    
+    // Compatibility accessors
+    public var primaryWidget: NotchWidgetType {
+        get { slot1 }
+        set { slot1 = newValue }
+    }
+    public var secondaryWidget: NotchWidgetType? {
+        get { slot2 }
+        set { slot2 = newValue }
+    }
+    public var tertiaryWidget: NotchWidgetType? {
+        get { slot3 }
+        set { slot3 = newValue }
     }
 }
 
@@ -355,46 +427,42 @@ public struct NotchPreferences: Codable, Equatable {
     public var displayTarget: DisplayTarget = .builtIn
     public var normalStateMediaDisplay: NormalStateMediaDisplay = .songTitle
     
-    // Modular Custom Pages (Feature-based & Customizable Layouts)
+    // Modular Custom Pages (Strictly Pages 1 to 4 with Modular Unit Box Layouts)
     public static let defaultCustomPages: [CustomNotchPage] = [
         CustomNotchPage(
-            id: "page-music",
+            id: "page-1",
+            pageNumber: 1,
             name: "Music & Lyrics",
             isEnabled: true,
             layout: .dualPod,
-            primaryWidget: .nowPlaying,
-            secondaryWidget: .lyrics
+            slot1: .nowPlaying,
+            slot2: .lyrics
         ),
         CustomNotchPage(
-            id: "page-shelf",
+            id: "page-2",
+            pageNumber: 2,
             name: "Drop & Clipboard",
             isEnabled: true,
             layout: .dualPod,
-            primaryWidget: .shelf,
-            secondaryWidget: .clipboard
+            slot1: .shelf,
+            slot2: .clipboard
         ),
         CustomNotchPage(
-            id: "page-system",
+            id: "page-3",
+            pageNumber: 3,
             name: "System & Tools",
             isEnabled: true,
             layout: .dualPod,
-            primaryWidget: .hardwareHUD,
-            secondaryWidget: .quickTools
+            slot1: .hardwareHUD,
+            slot2: .quickTools
         ),
         CustomNotchPage(
-            id: "page-notes",
-            name: "Notes & Calendar",
-            isEnabled: true,
-            layout: .dualPod,
-            primaryWidget: .scratchpad,
-            secondaryWidget: .calendar
-        ),
-        CustomNotchPage(
-            id: "page-camera",
+            id: "page-4",
+            pageNumber: 4,
             name: "Notch Mirror",
             isEnabled: true,
             layout: .fullStage,
-            primaryWidget: .camera
+            slot1: .camera
         )
     ]
     
@@ -490,8 +558,13 @@ public struct NotchPreferences: Codable, Equatable {
         }
         
         let decodedCustom = try c.decodeIfPresent([CustomNotchPage].self, forKey: .customPages)
-        if let dec = decodedCustom, !dec.isEmpty {
-            self.customPages = dec
+        if let dec = decodedCustom, dec.count == 4 {
+            var validated = dec
+            for i in 0..<4 {
+                validated[i].pageNumber = i + 1
+            }
+            validated[0].isEnabled = true
+            self.customPages = validated
         } else {
             self.customPages = NotchPreferences.defaultCustomPages
         }
