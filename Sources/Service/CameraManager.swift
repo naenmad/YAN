@@ -3,6 +3,20 @@ import AVFoundation
 import AppKit
 import SwiftUI
 
+public enum CameraAspectRatio: String, CaseIterable, Identifiable {
+    case widescreen = "16:9"
+    case standard = "4:3"
+    
+    public var id: String { rawValue }
+    
+    public var ratio: CGFloat {
+        switch self {
+        case .widescreen: return 16.0 / 9.0
+        case .standard: return 4.0 / 3.0
+        }
+    }
+}
+
 @MainActor
 public final class CameraManager: NSObject, ObservableObject {
     public static let shared = CameraManager()
@@ -11,6 +25,7 @@ public final class CameraManager: NSObject, ObservableObject {
     @Published public var isRunning: Bool = false
     @Published public var isPaused: Bool = false
     @Published public var isMirrored: Bool = true
+    @Published public var aspectRatio: CameraAspectRatio = .widescreen
     @Published public var hasPermission: Bool = false
     @Published public var isPermissionDenied: Bool = false
     @Published public var cameraName: String = "FaceTime HD Camera"
