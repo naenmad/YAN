@@ -175,38 +175,11 @@ public struct NotchCanvasView: View {
     public var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                // 1. Solid Black Notch Body
-                NotchShape(
-                    cornerRadius: activeCornerRadius,
-                    earRadius: CGFloat(store.preferences.earRadius)
-                )
-                .fill(Color.black)
-                .shadow(
-                    color: Color.black.opacity(isExpanded ? 0.60 : (isHovered ? 0.40 : 0.0)),
-                    radius: isExpanded ? 18 : 12,
-                    x: 0,
-                    y: isExpanded ? 8 : 5
-                )
+                // 1. Notch Body Background (Liquid Glass / Clear Glass / Classic Black)
+                notchBackgroundLayer
                 
-                // 2. Faint Rim Hint Outline
-                if store.preferences.showOutline {
-                    NotchBorderShape(
-                        cornerRadius: activeCornerRadius,
-                        earRadius: CGFloat(store.preferences.earRadius)
-                    )
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(store.preferences.outlineOpacity),
-                                Color.white.opacity(store.preferences.outlineOpacity * 0.45),
-                                Color.white.opacity(store.preferences.outlineOpacity)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-                }
+                // 2. Notch Specular Rim & Border
+                notchBorderLayer
                 
                 // 3. Resting State: Mini Media Glance
                 if !isExpanded && !isHovered && hasActiveMedia, let track = media.currentTrack {
@@ -492,6 +465,147 @@ public struct NotchCanvasView: View {
             CameraManager.shared.startSession()
         } else {
             CameraManager.shared.stopSession()
+        }
+    }
+    
+    // MARK: - Notch Background Layer (Liquid Glass / Clear Glass / Classic Black)
+    
+    @ViewBuilder
+    private var notchBackgroundLayer: some View {
+        let shape = NotchShape(
+            cornerRadius: activeCornerRadius,
+            earRadius: CGFloat(store.preferences.earRadius)
+        )
+        
+        switch store.preferences.themeMode {
+        case .classicBlack:
+            shape
+                .fill(Color.black)
+                .shadow(
+                    color: Color.black.opacity(isExpanded ? 0.60 : (isHovered ? 0.40 : 0.0)),
+                    radius: isExpanded ? 18 : 12,
+                    x: 0,
+                    y: isExpanded ? 8 : 5
+                )
+                
+        case .liquidGlass:
+            ZStack {
+                // A. Native Apple Frosted Material
+                shape
+                    .fill(.ultraThinMaterial)
+                
+                // B. Translucent Deep Glass Tint
+                shape
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.05, green: 0.06, blue: 0.08).opacity(store.preferences.glassOpacity),
+                                Color(red: 0.02, green: 0.02, blue: 0.03).opacity(store.preferences.glassOpacity * 0.95)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                
+                // C. Liquid Specular Sheen (Refractive top gloss)
+                shape
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.18),
+                                Color.white.opacity(0.04),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .center
+                        )
+                    )
+            }
+            .shadow(
+                color: Color.black.opacity(isExpanded ? 0.55 : 0.38),
+                radius: isExpanded ? 22 : 14,
+                x: 0,
+                y: isExpanded ? 9 : 5
+            )
+            
+        case .clearGlass:
+            ZStack {
+                // A. Native Material Frost
+                shape
+                    .fill(.thinMaterial)
+                
+                // B. Minimal Dark Tint for Text Legibility
+                shape
+                    .fill(Color.black.opacity(store.preferences.glassOpacity * 0.42))
+            }
+            .shadow(
+                color: Color.black.opacity(isExpanded ? 0.45 : 0.28),
+                radius: isExpanded ? 16 : 10,
+                x: 0,
+                y: isExpanded ? 7 : 4
+            )
+        }
+    }
+    
+    // MARK: - Notch Border & Specular Rim Layer
+    
+    @ViewBuilder
+    private var notchBorderLayer: some View {
+        let borderShape = NotchBorderShape(
+            cornerRadius: activeCornerRadius,
+            earRadius: CGFloat(store.preferences.earRadius)
+        )
+        
+        switch store.preferences.themeMode {
+        case .classicBlack:
+            if store.preferences.showOutline {
+                borderShape
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(store.preferences.outlineOpacity),
+                                Color.white.opacity(store.preferences.outlineOpacity * 0.45),
+                                Color.white.opacity(store.preferences.outlineOpacity)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
+            
+        case .liquidGlass:
+            // Liquid Glass Rim: Specular gradient with subtle refraction
+            borderShape
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.48),
+                            Color.white.opacity(0.18),
+                            Color.cyan.opacity(0.28),
+                            Color.white.opacity(0.38)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.0
+                )
+                
+        case .clearGlass:
+            // High-precision crisp glass perimeter
+            borderShape
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.55),
+                            Color.white.opacity(0.20),
+                            Color.white.opacity(0.45)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.8
+                )
         }
     }
     

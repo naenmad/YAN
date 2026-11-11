@@ -1,6 +1,41 @@
 import Foundation
 import SwiftUI
 
+public enum NotchThemeMode: String, Codable, CaseIterable, Identifiable {
+    case classicBlack = "classicBlack"
+    case liquidGlass = "liquidGlass"
+    case clearGlass = "clearGlass"
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .classicBlack: return "Pitch Black"
+        case .liquidGlass: return "Liquid Glass"
+        case .clearGlass: return "Clear Glass"
+        }
+    }
+    
+    public var subtitle: String {
+        switch self {
+        case .classicBlack:
+            return "Solid black finish that blends seamlessly with the hardware notch."
+        case .liquidGlass:
+            return "Translucent frosted glass with liquid specular reflections and blur."
+        case .clearGlass:
+            return "Ultra-minimal transparent glass HUD with sleek perimeter framing."
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .classicBlack: return "circle.fill"
+        case .liquidGlass: return "drop.fill"
+        case .clearGlass: return "square.dashed"
+        }
+    }
+}
+
 public enum HeightPreset: String, Codable, CaseIterable, Identifiable {
     case compact = "compact"
     case menuBar = "menubar"
@@ -163,6 +198,9 @@ public struct NotchPageConfig: Codable, Identifiable, Equatable {
 }
 
 public struct NotchPreferences: Codable, Equatable {
+    public var themeMode: NotchThemeMode = .liquidGlass
+    public var glassOpacity: Double = 0.75
+    
     public var widthPreset: WidthPreset = .standard
     public var heightPreset: HeightPreset = .menuBar
     public var notchStyle: NotchStyle = .apple
@@ -212,6 +250,7 @@ public struct NotchPreferences: Codable, Equatable {
     public static let `default` = NotchPreferences()
     
     enum CodingKeys: String, CodingKey {
+        case themeMode, glassOpacity
         case widthPreset, heightPreset, notchStyle
         case width, height, cornerRadius, earRadius
         case showOutline, outlineOpacity
@@ -227,6 +266,8 @@ public struct NotchPreferences: Codable, Equatable {
     
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        themeMode = try c.decodeIfPresent(NotchThemeMode.self, forKey: .themeMode) ?? .liquidGlass
+        glassOpacity = try c.decodeIfPresent(Double.self, forKey: .glassOpacity) ?? 0.75
         widthPreset = try c.decodeIfPresent(WidthPreset.self, forKey: .widthPreset) ?? .standard
         heightPreset = try c.decodeIfPresent(HeightPreset.self, forKey: .heightPreset) ?? .menuBar
         notchStyle = try c.decodeIfPresent(NotchStyle.self, forKey: .notchStyle) ?? .apple
@@ -313,8 +354,11 @@ public final class NotchSettingsStore: ObservableObject {
                 loaded.hoverScaleHeight = 1.15
             }
             // Pastikan opacity outline default halus (hint) jika belum tersetel
-            if loaded.outlineOpacity == 0 || loaded.outlineOpacity > 0.20 {
+            if loaded.outlineOpacity == 0 || loaded.outlineOpacity > 0.40 {
                 loaded.outlineOpacity = 0.12
+            }
+            if loaded.glassOpacity < 0.20 || loaded.glassOpacity > 1.0 {
+                loaded.glassOpacity = 0.75
             }
             if loaded.hoverWidth < 300 || loaded.hoverWidth > 800 { loaded.hoverWidth = 500.0 }
             if loaded.hoverHeight < 30 || loaded.hoverHeight > 120 { loaded.hoverHeight = 56.0 }

@@ -2,28 +2,28 @@ import SwiftUI
 import AppKit
 
 public enum SettingsCategory: String, CaseIterable, Identifiable {
-    case geometry = "Geometry"
-    case interaction = "Interaction"
+    case appearance = "Appearance"
+    case behavior = "Behavior"
     case pages = "Pages"
-    case display = "Displays"
+    case displays = "Displays"
     case about = "About"
     
     public var id: String { rawValue }
     
     public var icon: String {
         switch self {
-        case .geometry: return "macwindow"
-        case .interaction: return "cursorarrow.rays"
-        case .pages: return "square.grid.2x2"
-        case .display: return "display.2"
-        case .about: return "info.circle"
+        case .appearance: return "paintpalette.fill"
+        case .behavior: return "hand.tap.fill"
+        case .pages: return "square.grid.2x2.fill"
+        case .displays: return "display.2"
+        case .about: return "info.circle.fill"
         }
     }
 }
 
 public struct SettingsView: View {
     @ObservedObject var store: NotchSettingsStore = .shared
-    @State private var selectedCategory: SettingsCategory = .geometry
+    @State private var selectedCategory: SettingsCategory = .appearance
     
     public var body: some View {
         HStack(spacing: 0) {
@@ -59,13 +59,13 @@ public struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     switch selectedCategory {
-                    case .geometry:
-                        GeometryCategoryView(store: store)
-                    case .interaction:
-                        InteractionCategoryView(store: store)
+                    case .appearance:
+                        AppearanceCategoryView(store: store)
+                    case .behavior:
+                        BehaviorCategoryView(store: store)
                     case .pages:
                         PagesCategoryView(store: store)
-                    case .display:
+                    case .displays:
                         DisplayCategoryView(store: store)
                     case .about:
                         AboutCategoryView(store: store)
@@ -76,7 +76,7 @@ public struct SettingsView: View {
             }
             .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(minWidth: 700, idealWidth: 740, minHeight: 480, idealHeight: 520)
+        .frame(minWidth: 720, idealWidth: 760, minHeight: 520, idealHeight: 560)
     }
 }
 
@@ -92,7 +92,7 @@ private struct SidebarItemButton: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .frame(width: 20)
                     .foregroundColor(isSelected ? .white : .accentColor)
                 
@@ -115,29 +115,66 @@ private struct SidebarItemButton: View {
     }
 }
 
-// MARK: - Geometry Category View
+// MARK: - Appearance Category View
 
-private struct GeometryCategoryView: View {
+private struct AppearanceCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            // Header
             VStack(alignment: .leading, spacing: 4) {
-                Text("Notch Geometry")
+                Text("Appearance & Theme")
                     .font(.title2.weight(.semibold))
-                Text("Configure notch dimensions and appearance for your MacBook.")
+                Text("Choose your visual style, glass translucency, resting notch dimensions, and curvature.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
             
-            // 1. Notch Height
-            GroupBox {
+            // 1. Visual Theme Style Selector (Pitch Black / Liquid Glass / Clear Glass)
+            GroupBox(label: Text("Theme Style").font(.subheadline.weight(.semibold))) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 12) {
+                        ForEach(NotchThemeMode.allCases) { mode in
+                            themeCard(for: mode)
+                        }
+                    }
+                    
+                    // Glass Opacity Slider if Glass Mode active
+                    if store.preferences.themeMode != .classicBlack {
+                        Divider()
+                            .padding(.vertical, 2)
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Glass Tint Density")
+                                        .fontWeight(.medium)
+                                        .font(.subheadline)
+                                    Text("Balances background frosted blur and deep contrast for text.")
+                                        .font(.footnote)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text("\(Int(store.preferences.glassOpacity * 100))%")
+                                    .font(.footnote.monospacedDigit())
+                                    .foregroundColor(.secondary)
+                            }
+                            Slider(value: $store.preferences.glassOpacity, in: 0.25...0.95, step: 0.05)
+                        }
+                    }
+                }
+                .padding(14)
+            }
+            
+            // 2. Resting Notch Height
+            GroupBox(label: Text("Resting Height").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Notch Height")
+                            Text("Menu Bar Alignment")
                                 .fontWeight(.medium)
-                            Text("The 'Menu Bar (30)' option aligns flush with the standard MacBook menu bar.")
+                            Text("The 'Menu Bar (30)' option aligns flush with standard Apple Silicon menu bars.")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -161,12 +198,12 @@ private struct GeometryCategoryView: View {
                 .padding(14)
             }
             
-            // 2. Notch Width
-            GroupBox {
+            // 3. Resting Notch Width
+            GroupBox(label: Text("Resting Width").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Notch Width")
+                            Text("Default Horizontal Width")
                                 .fontWeight(.medium)
                             Text("Choose a preset width or drag the slider for custom sizing.")
                                 .font(.footnote)
@@ -201,13 +238,13 @@ private struct GeometryCategoryView: View {
                 .padding(14)
             }
             
-            // 3. Corner Style
-            GroupBox {
+            // 4. Corner Style
+            GroupBox(label: Text("Corner Curvature").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Corner Curvature")
+                        Text("Corner Radii Proportions")
                             .fontWeight(.medium)
-                        Text("Corner and ear radii are automatically proportioned to the notch height.")
+                        Text("Corner and ear radii automatically proportion to the notch height.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -226,20 +263,20 @@ private struct GeometryCategoryView: View {
                 .padding(14)
             }
             
-            // 4. Subtle Border Hint
-            GroupBox {
+            // 5. Subtle Perimeter Border & Specular Rim
+            GroupBox(label: Text("Perimeter Specular Rim").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Show Subtle Border Hint", isOn: $store.preferences.showOutline)
+                    Toggle("Show Specular Rim Outline", isOn: $store.preferences.showOutline)
                         .fontWeight(.medium)
                     
-                    Text("Adds a razor-thin 0.5pt specular reflection so the notch silhouette is gently perceptible against pitch-black backgrounds.")
+                    Text("Adds a razor-thin specular highlight so the notch silhouette is gently perceptible against pitch-black backgrounds or wallpapers.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                     
                     if store.preferences.showOutline {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text("Hint Opacity")
+                                Text("Rim Opacity")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -247,7 +284,7 @@ private struct GeometryCategoryView: View {
                                     .font(.footnote.monospacedDigit())
                                     .foregroundColor(.secondary)
                             }
-                            Slider(value: $store.preferences.outlineOpacity, in: 0.04...0.25, step: 0.02)
+                            Slider(value: $store.preferences.outlineOpacity, in: 0.04...0.40, step: 0.02)
                         }
                         .padding(.top, 2)
                     }
@@ -256,35 +293,134 @@ private struct GeometryCategoryView: View {
             }
         }
     }
+    
+    @ViewBuilder
+    private func themeCard(for mode: NotchThemeMode) -> some View {
+        let isSelected = store.preferences.themeMode == mode
+        
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                store.preferences.themeMode = mode
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                // Theme visual badge / preview
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(previewBackground(for: mode))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(previewBorder(for: mode), lineWidth: 1)
+                        )
+                    
+                    HStack(spacing: 5) {
+                        Image(systemName: mode.icon)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(mode == .liquidGlass ? .cyan : (mode == .clearGlass ? .white : .white.opacity(0.7)))
+                        
+                        Text(mode.label)
+                            .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(height: 48)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(mode.label)
+                            .font(.system(size: 13, weight: isSelected ? .bold : .semibold))
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.accentColor)
+                                .font(.system(size: 14))
+                        }
+                    }
+                    
+                    Text(mode.subtitle)
+                        .font(.system(size: 10.5))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(2)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.10) : Color(NSColor.controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(isSelected ? Color.accentColor : Color.gray.opacity(0.20), lineWidth: isSelected ? 1.8 : 0.8)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func previewBackground(for mode: NotchThemeMode) -> AnyShapeStyle {
+        switch mode {
+        case .classicBlack:
+            return AnyShapeStyle(Color.black)
+        case .liquidGlass:
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [
+                        Color.cyan.opacity(0.25),
+                        Color(white: 0.15).opacity(0.85)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        case .clearGlass:
+            return AnyShapeStyle(Color.white.opacity(0.08))
+        }
+    }
+    
+    private func previewBorder(for mode: NotchThemeMode) -> Color {
+        switch mode {
+        case .classicBlack:
+            return Color.white.opacity(0.15)
+        case .liquidGlass:
+            return Color.cyan.opacity(0.50)
+        case .clearGlass:
+            return Color.white.opacity(0.40)
+        }
+    }
 }
 
-// MARK: - Interaction Category View
+// MARK: - Behavior Category View
 
-private struct InteractionCategoryView: View {
+private struct BehaviorCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            // Header
             VStack(alignment: .leading, spacing: 4) {
-                Text("Interaction & Animation")
+                Text("Behavior & Interactions")
                     .font(.title2.weight(.semibold))
-                Text("Configure how the notch reacts to mouse movement and clicks.")
+                Text("Configure expansion triggers, resting state glance, and adaptive window dimensions.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
             
-            GroupBox {
+            // 1. Triggers
+            GroupBox(label: Text("Expansion Triggers").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 14) {
                     Toggle("Expand on Mouse Hover", isOn: $store.preferences.expandOnHover)
                         .fontWeight(.medium)
                     
-                    Text("Smoothly expands when the pointer moves over the notch.")
+                    Text("Smoothly expands to the preview bar when the pointer moves over the notch.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                     
                     Divider()
                     
-                    Toggle("Lock Height (Expand Horizontally Only)", isOn: $store.preferences.lockHeightOnHover)
+                    Toggle("Lock Height on Hover (Expand Horizontally Only)", isOn: $store.preferences.lockHeightOnHover)
                         .fontWeight(.medium)
                     
                     Text("Keeps height strictly locked to menu bar height (30 pt) so it never drops down or covers content on full-screen pages.")
@@ -296,15 +432,15 @@ private struct InteractionCategoryView: View {
                     Toggle("Expand on Click", isOn: $store.preferences.expandOnClick)
                         .fontWeight(.medium)
                     
-                    Text("Keeps the notch in expanded mode until clicked again.")
+                    Text("Keeps the notch in expanded dashboard mode until clicked again or clicked outside.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
                 .padding(14)
             }
             
-            // Normal State (Resting) Media Display
-            GroupBox(label: Text("Normal State (Resting) Display").font(.subheadline.weight(.semibold))) {
+            // 2. Normal State (Resting) Media Display
+            GroupBox(label: Text("Normal State (Resting) Media Display").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Choose what to display in the compact resting notch when audio or video is playing:")
                         .font(.footnote)
@@ -326,10 +462,10 @@ private struct InteractionCategoryView: View {
             }
             
             // 3. Hover Mode Dimensions
-            GroupBox(label: Text("Hover Mode Dimensions").font(.subheadline.weight(.semibold))) {
+            GroupBox(label: Text("Hover Mode Dimensions (Preview Bar)").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        Text("Controls the size of the compact preview when the mouse pointer hovers over the notch.")
+                        Text("Controls the size of the compact preview when hovering over the notch.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         Spacer()
@@ -381,7 +517,7 @@ private struct InteractionCategoryView: View {
             GroupBox(label: Text("Clicked Mode Dimensions (Dashboard)").font(.subheadline.weight(.semibold))) {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        Text("Controls the size of the enlarged dual-pod dashboard (Media Player + Calendar) when clicked.")
+                        Text("Controls the size of the enlarged dual-pod dashboard (Media Player + Lyrics / Calendar) when clicked.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         Spacer()
@@ -444,8 +580,9 @@ private struct PagesCategoryView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            // Header
             VStack(alignment: .leading, spacing: 4) {
-                Text("Notch Pages & Order")
+                Text("Notch Pages & Suite")
                     .font(.title2.weight(.semibold))
                 Text("Enable or disable notch pages, and customize the order you swipe through them.")
                     .font(.subheadline)
@@ -471,7 +608,7 @@ private struct PagesCategoryView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Reset Page Order")
                             .font(.subheadline.weight(.medium))
-                        Text("Restores the default suite layout with all 6 pages enabled.")
+                        Text("Restores the default suite layout with all 7 pages enabled.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -490,7 +627,7 @@ private struct PagesCategoryView: View {
                         .foregroundColor(.accentColor)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Navigation Tip")
+                        Text("Trackpad Navigation Tip")
                             .font(.subheadline.weight(.medium))
                         Text("Hover over the notch and swipe left or right with 2 fingers on your trackpad to cycle seamlessly across enabled pages.")
                             .font(.caption)
@@ -602,6 +739,7 @@ private struct DisplayCategoryView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            // Header
             VStack(alignment: .leading, spacing: 4) {
                 Text("Displays & Monitors")
                     .font(.title2.weight(.semibold))
@@ -616,7 +754,7 @@ private struct DisplayCategoryView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Target Display")
                                 .fontWeight(.medium)
-                            Text("Choose which screen hosts the notch.")
+                            Text("Choose which screen hosts the notch overlay.")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -633,7 +771,7 @@ private struct DisplayCategoryView: View {
                     
                     Divider()
                     
-                    Toggle("Keep Visible in Full Screen", isOn: $store.preferences.showInFullScreen)
+                    Toggle("Keep Visible in Native Full Screen", isOn: $store.preferences.showInFullScreen)
                         .fontWeight(.medium)
                     
                     Text("Retains the notch at the top even when other apps enter native full-screen mode.")
@@ -653,6 +791,7 @@ private struct AboutCategoryView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
+            // Header
             VStack(alignment: .leading, spacing: 4) {
                 Text("About YAN")
                     .font(.title2.weight(.semibold))
@@ -664,17 +803,27 @@ private struct AboutCategoryView: View {
             GroupBox {
                 VStack(spacing: 16) {
                     HStack(spacing: 16) {
-                        Image(systemName: "macwindow.badge.plus")
-                            .font(.system(size: 38))
-                            .foregroundColor(.accentColor)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(LinearGradient(colors: [Color.cyan.opacity(0.35), Color.blue.opacity(0.20)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(width: 52, height: 52)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .strokeBorder(Color.cyan.opacity(0.40), lineWidth: 1)
+                                )
+                            
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(.cyan)
+                        }
                         
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Text("YAN — Yet Another Notch")
                                 .font(.headline)
-                            Text("Version 0.1.0 (Build 1)")
+                            Text("Version 0.2.0 (Build 2)")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            Text("Virtual Dynamic Notch utility for macOS.")
+                            Text("Virtual Dynamic Notch suite with Liquid Glass for macOS.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -685,12 +834,15 @@ private struct AboutCategoryView: View {
                     Divider()
                     
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Shortcuts:")
-                            .font(.subheadline.weight(.medium))
-                        Text("• Double-click the notch to open this window.")
+                        Text("Quick Shortcuts & Gestures:")
+                            .font(.subheadline.weight(.semibold))
+                        Text("• Double-click the notch to open this Settings window.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
-                        Text("• Right-click the notch for quick actions.")
+                        Text("• Right-click the notch for quick context actions.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        Text("• Two-finger trackpad swipe left/right to switch pages.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         Text("• Press Command + Shift + Comma (⌘ ⇧ ,) anytime.")
