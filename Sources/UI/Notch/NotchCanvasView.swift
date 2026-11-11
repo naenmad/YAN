@@ -4,14 +4,20 @@ import UniformTypeIdentifiers
 
 // MARK: - Interactive Media Scrubber (Drag & Drop / Click to Seek)
 
-struct MediaScrubberView: View {
-    let duration: TimeInterval
-    let currentTime: TimeInterval
-    let onSeek: (TimeInterval) -> Void
+public struct MediaScrubberView: View {
+    public let duration: TimeInterval
+    public let currentTime: TimeInterval
+    public let onSeek: (TimeInterval) -> Void
     
     @State private var isDragging: Bool = false
     @State private var dragPosition: TimeInterval = 0
     @State private var isHovered: Bool = false
+    
+    public init(duration: TimeInterval, currentTime: TimeInterval, onSeek: @escaping (TimeInterval) -> Void) {
+        self.duration = duration
+        self.currentTime = currentTime
+        self.onSeek = onSeek
+    }
     
     private var displayTime: TimeInterval {
         isDragging ? dragPosition : currentTime
@@ -22,7 +28,7 @@ struct MediaScrubberView: View {
         return min(1.0, max(0.0, displayTime / duration))
     }
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 3) {
             GeometryReader { geo in
                 let totalWidth = geo.size.width
@@ -97,12 +103,6 @@ struct MediaScrubberView: View {
     }
 }
 
-public enum DashboardRightTab: String, CaseIterable, Identifiable {
-    case lyrics = "Lyrics"
-    case calendar = "Calendar"
-    public var id: String { rawValue }
-}
-
 // MARK: - Animated Audio Waveform Bars (Resting Notch Media)
 
 public struct AudioWaveformBars: View {
@@ -167,11 +167,6 @@ public struct NotchCanvasView: View {
     
     @State private var isHovered: Bool = false
     @State private var isExpanded: Bool = false
-    @State private var dashboardTab: DashboardRightTab = .lyrics
-    
-    private var activePage: NotchPage {
-        pageManager.activePage
-    }
     
     // Automatic collapse monitoring, trackpad 2-finger swipe & file drag targeting
     @State private var outsideClickMonitor: Any? = nil
@@ -321,14 +316,18 @@ public struct NotchCanvasView: View {
                     isHovered = hovering
                 }
             }
-            .onTapGesture(count: 2) {
-                SettingsWindowController.shared.show()
-            }
-            .onTapGesture(count: 1) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                    isExpanded.toggle()
+            .gesture(
+                TapGesture(count: 2).onEnded {
+                    SettingsWindowController.shared.show()
                 }
-            }
+                .exclusively(
+                    before: TapGesture(count: 1).onEnded {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            isExpanded.toggle()
+                        }
+                    }
+                )
+            )
             .simultaneousGesture(
                 DragGesture(minimumDistance: 25)
                     .onEnded { value in
@@ -860,411 +859,12 @@ public struct NotchCanvasView: View {
         )
     }
     
-    // MARK: - Dashboard Media Left Pod (Player, Artwork, Scrubber & Controls)
-    
-    @ViewBuilder
-    private var dashboardMediaLeftPod: some View {
-        if hasActiveMedia, let track = media.currentTrack {
-            VStack(alignment: .leading, spacing: 7) {
-                // 1. Artwork + Title + Artist + Source Capsule
-                HStack(spacing: 10) {
-                    ZStack(alignment: .bottomTrailing) {
-                        if let art = track.artwork {
-                            Image(nsImage: art)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 46, height: 46)
-                                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
-                                )
-                        } else {
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(Color.white.opacity(0.08))
-                                .frame(width: 46, height: 46)
-                                .overlay(
-                                    Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(.white.opacity(0.70))
-                                )
-                        }
-                        
-                        if track.mediaType == .video {
-                            Image(systemName: "video.fill")
-                                .font(.system(size: 6.5))
-                                .foregroundColor(.white)
-                                .padding(2.5)
-                                .background(Color.black.opacity(0.85))
-                                .clipShape(Circle())
-                                .offset(x: 2, y: 2)
-                        }
-                    }
-                    .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1.5)
-                    
-                    VStack(alignment: .leading, spacing: 2.5) {
-                        MarqueeText(
-                            track.title,
-                            fontSize: 12.5,
-                            fontWeight: .bold,
-                            color: .white
-                        )
-                        
-                        Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.65))
-                            .lineLimit(1)
-                        
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(track.isPlaying ? Color.green : Color.orange)
-                                .frame(width: 4.5, height: 4.5)
-                            
-                            Text(track.sourceApp)
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.40))
-                            
-                            if !track.album.isEmpty {
-                                Text("•")
-                                    .font(.system(size: 7.5))
-                                    .foregroundColor(.white.opacity(0.25))
-                                Text(track.album)
-                                    .font(.system(size: 8, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.35))
-                                    .lineLimit(1)
-                            }
-                        }
-                    }
-                    
-                    Spacer(minLength: 0)
-                }
-                
-                // 2. Interactive Scrubber Timeline
-                MediaScrubberView(
-                    duration: track.duration,
-                    currentTime: media.currentPlaybackPosition,
-                    onSeek: { targetTime in
-                        media.seek(to: targetTime)
-                    }
-                )
-                
-                // 3. Playback Controls (Prev, Play/Pause, Next)
-                HStack(spacing: 18) {
-                    Spacer()
-                    
-                    if track.mediaType == .video {
-                        Button {
-                            media.seek(to: max(0, media.currentPlaybackPosition - 15))
-                        } label: {
-                            Image(systemName: "gobackward.15")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.75))
-                                .frame(width: 24, height: 24)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("Rewind 15s")
-                    }
-                    
-                    Button {
-                        media.previousTrack()
-                    } label: {
-                        Image(systemName: "backward.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.85))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Previous Track")
-                    
-                    Button {
-                        media.togglePlayPause()
-                    } label: {
-                        Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.black)
-                            .frame(width: 32, height: 32)
-                            .background(Color.white)
-                            .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 1)
-                    }
-                    .buttonStyle(.plain)
-                    .help(track.isPlaying ? "Pause" : "Play")
-                    
-                    Button {
-                        media.nextTrack()
-                    } label: {
-                        Image(systemName: "forward.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.85))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Next Track")
-                    
-                    if track.mediaType == .video {
-                        Button {
-                            media.seek(to: min(track.duration, media.currentPlaybackPosition + 15))
-                        } label: {
-                            Image(systemName: "goforward.15")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.75))
-                                .frame(width: 24, height: 24)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("Forward 15s")
-                    }
-                    
-                    Spacer()
-                }
-            }
-        } else {
-            // Standby Minimalis Bersih saat Tidak Ada Media
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
-                            .frame(width: 44, height: 44)
-                        
-                        Image(systemName: "music.note")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.40))
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("No Media Playing")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.90))
-                        
-                        Text("Ready for playback")
-                            .font(.system(size: 9.5, weight: .regular))
-                            .foregroundColor(.white.opacity(0.40))
-                    }
-                    
-                    Spacer(minLength: 0)
-                }
-                
-                Spacer(minLength: 0)
-                
-                HStack {
-                    Spacer()
-                    Button {
-                        media.togglePlayPause()
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("Resume")
-                                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        }
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Color.white)
-                        .clipShape(Capsule())
-                        .shadow(color: Color.black.opacity(0.25), radius: 3, x: 0, y: 1)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Resume Playback")
-                    Spacer()
-                }
-                
-                Spacer(minLength: 0)
-            }
-        }
-    }
-    
-    // MARK: - Dashboard Right Pod (Dedicated Lyrics Stage / Calendar Switcher)
-    
-    @ViewBuilder
-    private var dashboardRightPod: some View {
-        let effectiveTab = hasActiveMedia ? dashboardTab : .calendar
-        
-        VStack(alignment: .leading, spacing: 6) {
-            if hasActiveMedia {
-                HStack {
-                    HStack(spacing: 5) {
-                        Image(systemName: effectiveTab == .lyrics ? "quote.bubble.fill" : "calendar")
-                            .font(.system(size: 8.5, weight: .semibold))
-                            .foregroundColor(.cyan)
-                        Text(effectiveTab == .lyrics ? "LYRICS" : "CALENDAR")
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            .foregroundColor(.cyan)
-                            .tracking(0.6)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 2) {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                dashboardTab = .lyrics
-                            }
-                        } label: {
-                            Text("Lyrics")
-                                .font(.system(size: 8, weight: dashboardTab == .lyrics ? .bold : .medium, design: .rounded))
-                                .foregroundColor(dashboardTab == .lyrics ? .white : .white.opacity(0.40))
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(dashboardTab == .lyrics ? Color.white.opacity(0.18) : Color.clear)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                dashboardTab = .calendar
-                            }
-                        } label: {
-                            Text("Calendar")
-                                .font(.system(size: 8, weight: dashboardTab == .calendar ? .bold : .medium, design: .rounded))
-                                .foregroundColor(dashboardTab == .calendar ? .white : .white.opacity(0.40))
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(dashboardTab == .calendar ? Color.white.opacity(0.18) : Color.clear)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(2)
-                    .background(Color.white.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                }
-            }
-            
-            if effectiveTab == .lyrics {
-                lyricsStageView
-            } else {
-                NotchCalendarView(isLarge: true)
-            }
-        }
-    }
-    
-    // MARK: - Synchronized Karaoke Lyrics Stage
-    
-    @ViewBuilder
-    private var lyricsStageView: some View {
-        if !media.activeLyrics.isEmpty {
-            let currentLine = media.currentLyric
-            let prevLine = media.previousLyric
-            let nextLine = media.nextLyric
-            let upcomingLine: String? = {
-                guard let curr = currentLine,
-                      let idx = media.activeLyrics.firstIndex(where: { $0.text == curr }),
-                      idx + 2 < media.activeLyrics.count else { return nil }
-                return media.activeLyrics[idx + 2].text
-            }()
-            
-            VStack(alignment: .leading, spacing: 5) {
-                Spacer(minLength: 0)
-                
-                // 1. Previous Line (faded)
-                Text(prevLine ?? " ")
-                    .font(.system(size: 9.5, weight: .regular, design: .rounded))
-                    .foregroundColor(.white.opacity(0.28))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // 2. Current Line (Highlighted in cyan pill, autoscrolls if long)
-                HStack(spacing: 6) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 9.5, weight: .bold))
-                        .foregroundColor(.cyan)
-                    
-                    MarqueeText(
-                        currentLine ?? "Instrumental",
-                        fontSize: 12,
-                        fontWeight: .bold,
-                        color: .cyan
-                    )
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color.cyan.opacity(0.12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .strokeBorder(Color.cyan.opacity(0.28), lineWidth: 0.8)
-                        )
-                )
-                
-                // 3. Next Line (semi-faded)
-                Text(nextLine ?? " ")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.48))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // 4. Upcoming Line (faded)
-                if let upcoming = upcomingLine {
-                    Text(upcoming)
-                        .font(.system(size: 9, weight: .regular, design: .rounded))
-                        .foregroundColor(.white.opacity(0.25))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            // Placeholder jika musik tidak memiliki file lirik sinkron (.lrc)
-            VStack(spacing: 6) {
-                Spacer(minLength: 0)
-                
-                Image(systemName: "music.quarternote.3")
-                    .font(.system(size: 20))
-                    .foregroundColor(.white.opacity(0.25))
-                
-                Text("No Synced Lyrics")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.60))
-                
-                Text("Synced lyrics unavailable for this track")
-                    .font(.system(size: 9, weight: .regular))
-                    .foregroundColor(.white.opacity(0.35))
-                
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        dashboardTab = .calendar
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 9))
-                        Text("Show Calendar")
-                            .font(.system(size: 9.5, weight: .medium))
-                    }
-                    .foregroundColor(.cyan)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3.5)
-                    .background(Color.cyan.opacity(0.12))
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-    
     // MARK: - Compact Hover Content (Mode Hover / Dynamic Page Glance)
     
     @ViewBuilder
     private var compactHoverContent: some View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
-        let dividerH = max(20.0, hoverH - 22.0)
+        let dividerH = max(18.0, hoverH - 26.0)
         let page = pageManager.currentCustomPage
         
         Group {
@@ -1328,165 +928,9 @@ public struct NotchCanvasView: View {
                 .transition(.opacity)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
         .frame(maxWidth: .infinity, maxHeight: hoverH, alignment: .center)
-    }
-    
-    // MARK: - Compact Dashboard Glance (Hover Page 1)
-    
-    @ViewBuilder
-    private var compactDashboardGlance: some View {
-        let hoverH = CGFloat(store.preferences.hoverHeight)
-        let dividerH = max(20.0, hoverH - 22.0)
-        
-        HStack(spacing: 10) {
-            if hasActiveMedia, let track = media.currentTrack {
-                // SISI KIRI: Compact Media (Lebar ~300pt)
-                HStack(spacing: 9) {
-                    ZStack(alignment: .bottomTrailing) {
-                        if let art = track.artwork {
-                            Image(nsImage: art)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 38, height: 38)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        } else {
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(Color.white.opacity(0.08))
-                                .frame(width: 38, height: 38)
-                                .overlay(
-                                    Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(.white.opacity(0.80))
-                                )
-                        }
-                        
-                        if track.mediaType == .video {
-                            Image(systemName: "video.fill")
-                                .font(.system(size: 7))
-                                .foregroundColor(.white)
-                                .padding(2)
-                                .background(Color.black.opacity(0.80))
-                                .clipShape(Circle())
-                                .offset(x: 2, y: 2)
-                        }
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(track.title)
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        
-                        if track.mediaType == .video {
-                            Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                                .font(.system(size: 9.5, weight: .medium))
-                                .foregroundColor(.white.opacity(0.65))
-                                .lineLimit(1)
-                        } else if let lyric = media.currentLyric, !lyric.isEmpty {
-                            HStack(spacing: 3) {
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 8))
-                                    .foregroundColor(.cyan)
-                                MarqueeText(
-                                    lyric,
-                                    fontSize: 9,
-                                    fontWeight: .semibold,
-                                    color: .cyan
-                                )
-                            }
-                        } else {
-                            Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                                .font(.system(size: 9.5, weight: .medium))
-                                .foregroundColor(.white.opacity(0.65))
-                                .lineLimit(1)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    HStack(spacing: 5) {
-                        Button {
-                            media.previousTrack()
-                        } label: {
-                            Image(systemName: "backward.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.85))
-                                .frame(width: 22, height: 22)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button {
-                            media.togglePlayPause()
-                        } label: {
-                            Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(.white)
-                                .frame(width: 24, height: 24)
-                                .background(Color.white.opacity(0.22))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button {
-                            media.nextTrack()
-                        } label: {
-                            Image(systemName: "forward.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.85))
-                                .frame(width: 22, height: 22)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            } else {
-                // Standby Compact
-                HStack(spacing: 9) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
-                            .frame(width: 32, height: 32)
-                        Image(systemName: "music.note")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.60))
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("No Media Playing")
-                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.92))
-                            .lineLimit(1)
-                        Text("Click notch to open dashboard")
-                            .font(.system(size: 8.5, weight: .regular))
-                            .foregroundColor(.white.opacity(0.40))
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    Button {
-                        media.togglePlayPause()
-                    } label: {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.85))
-                            .frame(width: 24, height: 24)
-                            .background(Color.white.opacity(0.12))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .frame(maxWidth: .infinity)
-            }
-            
-            // DIVIDER
-            Rectangle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 1, height: dividerH)
-            
-            // SISI KANAN: Compact 7-Day Calendar (Lebar ~170pt)
-            NotchCalendarView(isLarge: false)
-                .frame(width: 170)
-        }
     }
 }
 
