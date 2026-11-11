@@ -5,7 +5,7 @@ import AppKit
 public final class NotchPageManager: ObservableObject {
     public static let shared = NotchPageManager()
     
-    @Published public var activePage: NotchPage = .dashboard
+    @Published public var activePageIndex: Int = 0
     
     // Swipe gesture accumulation & debounce
     private var accumulatedDeltaX: CGFloat = 0
@@ -17,56 +17,96 @@ public final class NotchPageManager: ObservableObject {
     
     private init() {}
     
+    public var enabledCustomPages: [CustomNotchPage] {
+        let pages = NotchSettingsStore.shared.preferences.enabledCustomPages
+        return pages.isEmpty ? [NotchPreferences.defaultCustomPages[0]] : pages
+    }
+    
+    public var currentCustomPage: CustomNotchPage {
+        let pages = enabledCustomPages
+        if activePageIndex >= 0 && activePageIndex < pages.count {
+            return pages[activePageIndex]
+        }
+        return pages.first ?? NotchPreferences.defaultCustomPages[0]
+    }
+    
+    /// Backward-compatible property mapping to legacy NotchPage
+    public var activePage: NotchPage {
+        switch currentCustomPage.primaryWidget {
+        case .nowPlaying, .lyrics: return .dashboard
+        case .shelf: return .dropZone
+        case .clipboard: return .clipboard
+        case .hardwareHUD: return .hardwareHUD
+        case .quickTools: return .quickTools
+        case .scratchpad: return .scratchpad
+        case .camera: return .camera
+        case .calendar: return .dashboard
+        }
+    }
+    
     public var enabledPages: [NotchPage] {
         let pages = NotchSettingsStore.shared.preferences.enabledPages
         return pages.isEmpty ? [.dashboard] : pages
     }
     
     public func validateActivePage() {
-        let active = enabledPages
-        if !active.contains(activePage), let first = active.first {
-            switchToPage(first)
+        let count = enabledCustomPages.count
+        if activePageIndex >= count {
+            activePageIndex = max(0, count - 1)
+        }
+    }
+    
+    public func switchToPage(index: Int) {
+        let count = enabledCustomPages.count
+        guard index >= 0 && index < count && activePageIndex != index else { return }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
+            activePageIndex = index
+        }
+    }
+    
+    public func switchToPage(id: String) {
+        let pages = enabledCustomPages
+        if let idx = pages.firstIndex(where: { $0.id == id }) {
+            switchToPage(index: idx)
         }
     }
     
     public func switchToPage(_ page: NotchPage) {
-        guard activePage != page else { return }
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
-            activePage = page
+        let pages = enabledCustomPages
+        if let idx = pages.firstIndex(where: {
+            switch $0.primaryWidget {
+            case .nowPlaying, .lyrics: return page == .dashboard
+            case .shelf: return page == .dropZone
+            case .clipboard: return page == .clipboard
+            case .hardwareHUD: return page == .hardwareHUD
+            case .quickTools: return page == .quickTools
+            case .scratchpad: return page == .scratchpad
+            case .camera: return page == .camera
+            case .calendar: return page == .dashboard
+            }
+        }) {
+            switchToPage(index: idx)
         }
     }
     
     public func nextPage() {
-        let active = enabledPages
-        guard let idx = active.firstIndex(of: activePage) else {
-            if let first = active.first { switchToPage(first) }
-            return
-        }
-        if idx + 1 < active.count {
-            switchToPage(active[idx + 1])
+        let count = enabledCustomPages.count
+        guard count > 1 else { return }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
+            activePageIndex = (activePageIndex + 1) % count
         }
     }
     
     public func previousPage() {
-        let active = enabledPages
-        guard let idx = active.firstIndex(of: activePage) else {
-            if let first = active.first { switchToPage(first) }
-            return
-        }
-        if idx > 0 {
-            switchToPage(active[idx - 1])
+        let count = enabledCustomPages.count
+        guard count > 1 else { return }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
+            activePageIndex = (activePageIndex - 1 + count) % count
         }
     }
     
     public func togglePage() {
-        let active = enabledPages
-        guard active.count > 1 else { return }
-        if let idx = active.firstIndex(of: activePage) {
-            let nextIdx = (idx + 1) % active.count
-            switchToPage(active[nextIdx])
-        } else if let first = active.first {
-            switchToPage(first)
-        }
+        nextPage()
     }
     
     /// Menangani event scrollWheel trackpad untuk swipe 2-jari horizontal

@@ -329,7 +329,7 @@ public struct NotchCanvasView: View {
             }
             updateCameraLifecycle()
         }
-        .onChange(of: activePage) { _ in
+        .onChange(of: pageManager.activePageIndex) { _ in
             updateCameraLifecycle()
         }
         .onChange(of: isHovered) { _ in
@@ -460,7 +460,9 @@ public struct NotchCanvasView: View {
     }
     
     private func updateCameraLifecycle() {
-        let shouldCameraRun = activePage == .camera && (isExpanded || isHovered)
+        let currentPage = pageManager.currentCustomPage
+        let hasCamera = currentPage.primaryWidget == .camera || currentPage.secondaryWidget == .camera || currentPage.tertiaryWidget == .camera
+        let shouldCameraRun = hasCamera && (isExpanded || isHovered)
         if shouldCameraRun {
             CameraManager.shared.startSession()
         } else {
@@ -609,57 +611,65 @@ public struct NotchCanvasView: View {
         }
     }
     
-    // MARK: - Large Unified Content (Mode Clicked / Expanded)
+    // MARK: - Large Unified Content (Mode Clicked / Dynamic Page Layout)
     
     @ViewBuilder
     private var largeUnifiedContent: some View {
         let currentW = CGFloat(store.preferences.clickedWidth)
         let currentH = CGFloat(store.preferences.clickedHeight)
         let availableW = max(360.0, currentW - 57) // horizontal padding 28 + spacing 28 + divider 1
-        let podWidth = availableW / 2
         let dividerHeight = max(70.0, currentH - 28)
+        let page = pageManager.currentCustomPage
         
         Group {
-            switch activePage {
-            case .dashboard:
+            switch page.layout {
+            case .dualPod:
+                let podWidth = availableW / 2
                 HStack(spacing: 14) {
-                    dashboardMediaLeftPod
+                    NotchWidgetHostView(type: page.primaryWidget, size: .medium)
                         .frame(width: podWidth)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.10))
                         .frame(width: 1, height: dividerHeight)
                     
-                    dashboardRightPod
+                    NotchWidgetHostView(type: page.secondaryWidget ?? .lyrics, size: .medium)
                         .frame(width: podWidth)
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 10)
                 .transition(.opacity)
-            case .dropZone:
-                NotchDropZoneView()
-                    .padding(.top, 4)
+                
+            case .fullStage:
+                NotchWidgetHostView(type: page.primaryWidget, size: .large)
+                    .frame(width: availableW)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 6)
                     .transition(.opacity)
-            case .clipboard:
-                NotchClipboardView()
-                    .padding(.top, 4)
-                    .transition(.opacity)
-            case .hardwareHUD:
-                NotchHardwareHUDView()
-                    .padding(.top, 4)
-                    .transition(.opacity)
-            case .quickTools:
-                NotchQuickToolsView()
-                    .padding(.top, 4)
-                    .transition(.opacity)
-            case .scratchpad:
-                NotchScratchpadView()
-                    .padding(.top, 4)
-                    .transition(.opacity)
-            case .camera:
-                NotchCameraView()
-                    .padding(.top, 4)
-                    .transition(.opacity)
+                
+            case .triplePod:
+                let podW3 = max(100.0, (availableW - 30) / 3)
+                HStack(spacing: 10) {
+                    NotchWidgetHostView(type: page.primaryWidget, size: .small)
+                        .frame(width: podW3)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: 1, height: dividerHeight)
+                    
+                    NotchWidgetHostView(type: page.secondaryWidget ?? .hardwareHUD, size: .small)
+                        .frame(width: podW3)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: 1, height: dividerHeight)
+                    
+                    NotchWidgetHostView(type: page.tertiaryWidget ?? .quickTools, size: .small)
+                        .frame(width: podW3)
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .transition(.opacity)
             }
         }
     }
@@ -1063,35 +1073,49 @@ public struct NotchCanvasView: View {
         }
     }
     
-    // MARK: - Compact Hover Content (Mode Hover)
+    // MARK: - Compact Hover Content (Mode Hover / Dynamic Page Glance)
     
     @ViewBuilder
     private var compactHoverContent: some View {
         let hoverH = CGFloat(store.preferences.hoverHeight)
+        let dividerH = max(20.0, hoverH - 22.0)
+        let page = pageManager.currentCustomPage
         
         Group {
-            switch activePage {
-            case .dashboard:
-                compactDashboardGlance
+            switch page.layout {
+            case .fullStage:
+                NotchWidgetHostView(type: page.primaryWidget, size: .small)
                     .transition(.opacity)
-            case .dropZone:
-                NotchCompactDropZoneView()
-                    .transition(.opacity)
-            case .clipboard:
-                NotchCompactClipboardView()
-                    .transition(.opacity)
-            case .hardwareHUD:
-                NotchCompactHardwareHUDView()
-                    .transition(.opacity)
-            case .quickTools:
-                NotchCompactQuickToolsView()
-                    .transition(.opacity)
-            case .scratchpad:
-                NotchCompactScratchpadView()
-                    .transition(.opacity)
-            case .camera:
-                NotchCompactCameraView()
-                    .transition(.opacity)
+                
+            case .dualPod:
+                HStack(spacing: 12) {
+                    NotchWidgetHostView(type: page.primaryWidget, size: .small)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: dividerH)
+                    
+                    NotchWidgetHostView(type: page.secondaryWidget ?? .lyrics, size: .small)
+                }
+                .transition(.opacity)
+                
+            case .triplePod:
+                HStack(spacing: 8) {
+                    NotchWidgetHostView(type: page.primaryWidget, size: .small)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: dividerH)
+                    
+                    NotchWidgetHostView(type: page.secondaryWidget ?? .hardwareHUD, size: .small)
+                    
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 1, height: dividerH)
+                    
+                    NotchWidgetHostView(type: page.tertiaryWidget ?? .quickTools, size: .small)
+                }
+                .transition(.opacity)
             }
         }
         .padding(.horizontal, 12)

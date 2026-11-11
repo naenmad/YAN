@@ -197,6 +197,132 @@ public struct NotchPageConfig: Codable, Identifiable, Equatable {
     }
 }
 
+// MARK: - Modular Widget Architecture
+
+public enum WidgetSize: String, Codable, CaseIterable, Identifiable {
+    case small = "small"     // Compact glance / hover bar
+    case medium = "medium"   // Dual-pod half stage (~260pt)
+    case large = "large"     // Full single stage (100% width)
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .small: return "Small (Glance)"
+        case .medium: return "Medium (Pod)"
+        case .large: return "Large (Full)"
+        }
+    }
+}
+
+public enum NotchWidgetType: String, Codable, CaseIterable, Identifiable {
+    case nowPlaying = "nowPlaying"
+    case lyrics = "lyrics"
+    case calendar = "calendar"
+    case shelf = "shelf"
+    case clipboard = "clipboard"
+    case hardwareHUD = "hardwareHUD"
+    case quickTools = "quickTools"
+    case scratchpad = "scratchpad"
+    case camera = "camera"
+    
+    public var id: String { rawValue }
+    
+    public var title: String {
+        switch self {
+        case .nowPlaying: return "Music Player"
+        case .lyrics: return "Live Lyrics"
+        case .calendar: return "Calendar & Agenda"
+        case .shelf: return "Drop & Shelf"
+        case .clipboard: return "Clipboard History"
+        case .hardwareHUD: return "Hardware HUD"
+        case .quickTools: return "Quick Tools"
+        case .scratchpad: return "Scratchpad"
+        case .camera: return "Notch Mirror"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .nowPlaying: return "music.note"
+        case .lyrics: return "quote.bubble.fill"
+        case .calendar: return "calendar"
+        case .shelf: return "tray.and.arrow.down.fill"
+        case .clipboard: return "doc.on.clipboard.fill"
+        case .hardwareHUD: return "cpu"
+        case .quickTools: return "slider.horizontal.3"
+        case .scratchpad: return "note.text"
+        case .camera: return "camera.fill"
+        }
+    }
+    
+    public var subtitle: String {
+        switch self {
+        case .nowPlaying: return "Artwork, title, scrubber slider & controller"
+        case .lyrics: return "Synced real-time karaoke teleprompter"
+        case .calendar: return "Today events, agenda schedule & month view"
+        case .shelf: return "AirDrop target & temporary file staging shelf"
+        case .clipboard: return "Recent clipboard snippets & pinned items"
+        case .hardwareHUD: return "Apple Silicon CPU, RAM & Battery status"
+        case .quickTools: return "Sleep guard, mic toggle, color picker & snip"
+        case .scratchpad: return "Quick thought notes & daily checklist tasks"
+        case .camera: return "Live FaceTime HD vanity mirror & snapshot"
+        }
+    }
+}
+
+public enum PageLayoutType: String, Codable, CaseIterable, Identifiable {
+    case dualPod = "dualPod"       // Left Pod (50%) + Right Pod (50%)
+    case fullStage = "fullStage"   // Full Stage Widget (100%)
+    case triplePod = "triplePod"   // 3 compact widgets (33% each)
+    
+    public var id: String { rawValue }
+    
+    public var label: String {
+        switch self {
+        case .dualPod: return "Split Dual-Pod (50 : 50)"
+        case .fullStage: return "Full Stage (100%)"
+        case .triplePod: return "Triple Glance (33 : 33 : 33)"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .dualPod: return "rectangle.split.2x1"
+        case .fullStage: return "rectangle.fill"
+        case .triplePod: return "rectangle.split.3x1"
+        }
+    }
+}
+
+public struct CustomNotchPage: Codable, Identifiable, Equatable {
+    public var id: String
+    public var name: String
+    public var isEnabled: Bool
+    public var layout: PageLayoutType
+    public var primaryWidget: NotchWidgetType
+    public var secondaryWidget: NotchWidgetType?
+    public var tertiaryWidget: NotchWidgetType?
+    
+    public init(
+        id: String = UUID().uuidString,
+        name: String,
+        isEnabled: Bool = true,
+        layout: PageLayoutType = .dualPod,
+        primaryWidget: NotchWidgetType,
+        secondaryWidget: NotchWidgetType? = nil,
+        tertiaryWidget: NotchWidgetType? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.isEnabled = isEnabled
+        self.layout = layout
+        self.primaryWidget = primaryWidget
+        self.secondaryWidget = secondaryWidget
+        self.tertiaryWidget = tertiaryWidget
+    }
+}
+
 public struct NotchPreferences: Codable, Equatable {
     public var themeMode: NotchThemeMode = .liquidGlass
     public var glassOpacity: Double = 0.75
@@ -229,6 +355,56 @@ public struct NotchPreferences: Codable, Equatable {
     public var displayTarget: DisplayTarget = .builtIn
     public var normalStateMediaDisplay: NormalStateMediaDisplay = .songTitle
     
+    // Modular Custom Pages (Feature-based & Customizable Layouts)
+    public static let defaultCustomPages: [CustomNotchPage] = [
+        CustomNotchPage(
+            id: "page-music",
+            name: "Music & Lyrics",
+            isEnabled: true,
+            layout: .dualPod,
+            primaryWidget: .nowPlaying,
+            secondaryWidget: .lyrics
+        ),
+        CustomNotchPage(
+            id: "page-shelf",
+            name: "Drop & Clipboard",
+            isEnabled: true,
+            layout: .dualPod,
+            primaryWidget: .shelf,
+            secondaryWidget: .clipboard
+        ),
+        CustomNotchPage(
+            id: "page-system",
+            name: "System & Tools",
+            isEnabled: true,
+            layout: .dualPod,
+            primaryWidget: .hardwareHUD,
+            secondaryWidget: .quickTools
+        ),
+        CustomNotchPage(
+            id: "page-notes",
+            name: "Notes & Calendar",
+            isEnabled: true,
+            layout: .dualPod,
+            primaryWidget: .scratchpad,
+            secondaryWidget: .calendar
+        ),
+        CustomNotchPage(
+            id: "page-camera",
+            name: "Notch Mirror",
+            isEnabled: true,
+            layout: .fullStage,
+            primaryWidget: .camera
+        )
+    ]
+    
+    public var customPages: [CustomNotchPage] = NotchPreferences.defaultCustomPages
+    
+    public var enabledCustomPages: [CustomNotchPage] {
+        let active = customPages.filter { $0.isEnabled }
+        return active.isEmpty ? [NotchPreferences.defaultCustomPages[0]] : active
+    }
+    
     // Konfigurasi Halaman Notch (Dapat diaktifkan/dinonaktifkan & diatur urutannya)
     public static let defaultPagesOrder: [NotchPageConfig] = [
         NotchPageConfig(page: .dashboard, isEnabled: true),
@@ -260,6 +436,7 @@ public struct NotchPreferences: Codable, Equatable {
         case showInFullScreen, displayTarget
         case normalStateMediaDisplay
         case pagesOrder
+        case customPages
     }
     
     public init() {}
@@ -310,6 +487,13 @@ public struct NotchPreferences: Codable, Equatable {
                 NotchPageConfig(page: .scratchpad, isEnabled: true),
                 NotchPageConfig(page: .camera, isEnabled: true)
             ]
+        }
+        
+        let decodedCustom = try c.decodeIfPresent([CustomNotchPage].self, forKey: .customPages)
+        if let dec = decodedCustom, !dec.isEmpty {
+            self.customPages = dec
+        } else {
+            self.customPages = NotchPreferences.defaultCustomPages
         }
     }
     

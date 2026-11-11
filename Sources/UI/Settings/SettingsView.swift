@@ -3,8 +3,8 @@ import AppKit
 
 public enum SettingsCategory: String, CaseIterable, Identifiable {
     case appearance = "Appearance"
+    case pages = "Pages & Widgets"
     case behavior = "Behavior"
-    case pages = "Pages"
     case displays = "Displays"
     case about = "About"
     
@@ -13,8 +13,8 @@ public enum SettingsCategory: String, CaseIterable, Identifiable {
     public var icon: String {
         switch self {
         case .appearance: return "paintpalette.fill"
-        case .behavior: return "hand.tap.fill"
         case .pages: return "square.grid.2x2.fill"
+        case .behavior: return "hand.tap.fill"
         case .displays: return "display.2"
         case .about: return "info.circle.fill"
         }
@@ -573,7 +573,7 @@ private struct BehaviorCategoryView: View {
     }
 }
 
-// MARK: - Pages Category View
+// MARK: - Pages & Widgets Studio Category View
 
 private struct PagesCategoryView: View {
     @ObservedObject var store: NotchSettingsStore
@@ -581,45 +581,56 @@ private struct PagesCategoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Header
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Notch Pages & Suite")
-                    .font(.title2.weight(.semibold))
-                Text("Enable or disable notch pages, and customize the order you swipe through them.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            GroupBox {
-                VStack(spacing: 0) {
-                    ForEach(Array(store.preferences.pagesOrder.enumerated()), id: \.element.id) { index, item in
-                        pageRow(index: index, config: item)
-                        
-                        if index < store.preferences.pagesOrder.count - 1 {
-                            Divider()
-                                .padding(.vertical, 8)
-                        }
-                    }
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Pages & Widgets Studio")
+                        .font(.title2.weight(.semibold))
+                    Text("Assign any feature widget (Lyrics, Music, Calendar, Shelf, etc.) into any page slot with custom layouts.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
-                .padding(14)
+                
+                Spacer()
+                
+                Button {
+                    addNewPage()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add Page")
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.borderedProminent)
             }
             
+            // List of Custom Configured Pages
+            VStack(spacing: 16) {
+                ForEach(Array(store.preferences.customPages.enumerated()), id: \.element.id) { index, page in
+                    pageEditorCard(index: index, page: page)
+                }
+            }
+            
+            // Reset to Defaults
             GroupBox {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Reset Page Order")
+                        Text("Reset Page Layouts")
                             .font(.subheadline.weight(.medium))
-                        Text("Restores the default suite layout with all 7 pages enabled.")
+                        Text("Restores default 5-page setup with Dual-Pod music/lyrics and full-stage mirror.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    Button("Reset Pages") {
-                        store.preferences.pagesOrder = NotchPreferences.defaultPagesOrder
+                    Button("Reset to Default Suite") {
+                        store.preferences.customPages = NotchPreferences.defaultCustomPages
+                        NotchPageManager.shared.validateActivePage()
                     }
                 }
                 .padding(12)
             }
             
+            // Navigation Gesture Tip
             GroupBox {
                 HStack(spacing: 12) {
                     Image(systemName: "hand.draw")
@@ -629,7 +640,7 @@ private struct PagesCategoryView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Trackpad Navigation Tip")
                             .font(.subheadline.weight(.medium))
-                        Text("Hover over the notch and swipe left or right with 2 fingers on your trackpad to cycle seamlessly across enabled pages.")
+                        Text("Hover over the notch and swipe left or right with 2 fingers on your trackpad to cycle seamlessly across your custom pages.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -640,94 +651,313 @@ private struct PagesCategoryView: View {
     }
     
     @ViewBuilder
-    private func pageRow(index: Int, config: NotchPageConfig) -> some View {
-        HStack(spacing: 12) {
-            // Position number badge
-            Text("\(index + 1)")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(.secondary)
-                .frame(width: 18)
-            
-            // Icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(config.isEnabled ? Color.accentColor.opacity(0.18) : Color.white.opacity(0.06))
-                    .frame(width: 34, height: 34)
-                
-                Image(systemName: config.page.icon)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(config.isEnabled ? .accentColor : .secondary)
-            }
-            
-            // Text info
-            VStack(alignment: .leading, spacing: 2) {
-                Text(config.page.title)
+    private func pageEditorCard(index: Int, page: CustomNotchPage) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 14) {
+                // Baris Atas: Index + Nama Page + Chevrons + Toggle + Delete
+                HStack(spacing: 10) {
+                    // Position badge
+                    Text("\(index + 1)")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor)
+                        .clipShape(Capsule())
+                    
+                    // Editable Page Name
+                    TextField("Page Name", text: Binding(
+                        get: { page.name },
+                        set: { newName in
+                            if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                store.preferences.customPages[idx].name = newName
+                            }
+                        }
+                    ))
+                    .textFieldStyle(.roundedBorder)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(config.isEnabled ? .primary : .secondary)
-                Text(config.page.subtitle)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-            
-            Spacer()
-            
-            // Reorder Up & Down buttons
-            HStack(spacing: 3) {
-                Button {
-                    moveUp(at: index)
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 11, weight: .bold))
-                        .frame(width: 22, height: 22)
+                    .frame(maxWidth: 220)
+                    
+                    Spacer()
+                    
+                    // Move Up & Down chevrons
+                    HStack(spacing: 3) {
+                        Button {
+                            moveUp(at: index)
+                        } label: {
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 11, weight: .bold))
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(index == 0)
+                        .help("Move Up")
+                        
+                        Button {
+                            moveDown(at: index)
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 11, weight: .bold))
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(index == store.preferences.customPages.count - 1)
+                        .help("Move Down")
+                    }
+                    
+                    // Delete Button
+                    if store.preferences.customPages.count > 1 {
+                        Button {
+                            deletePage(at: index)
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundColor(.red.opacity(0.85))
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Delete Page")
+                    }
+                    
+                    Divider()
+                        .frame(height: 18)
+                    
+                    // Enable / Disable Toggle
+                    Toggle("", isOn: Binding(
+                        get: { page.isEnabled },
+                        set: { newValue in
+                            let enabledCount = store.preferences.customPages.filter { $0.isEnabled }.count
+                            if !newValue && enabledCount <= 1 {
+                                return
+                            }
+                            if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                store.preferences.customPages[idx].isEnabled = newValue
+                                NotchPageManager.shared.validateActivePage()
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
                 }
-                .buttonStyle(.borderless)
-                .disabled(index == 0)
-                .help("Move Up")
                 
-                Button {
-                    moveDown(at: index)
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
-                        .frame(width: 22, height: 22)
+                Divider()
+                
+                // Layout Picker
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Page Layout")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+                    
+                    Picker("", selection: Binding(
+                        get: { page.layout },
+                        set: { newLayout in
+                            if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                store.preferences.customPages[idx].layout = newLayout
+                            }
+                        }
+                    )) {
+                        ForEach(PageLayoutType.allCases) { layout in
+                            Label(layout.label, systemImage: layout.icon).tag(layout)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
                 }
-                .buttonStyle(.borderless)
-                .disabled(index == store.preferences.pagesOrder.count - 1)
-                .help("Move Down")
+                
+                // Slot Assignment Controls
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Widget Slots")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+                    
+                    switch page.layout {
+                    case .dualPod:
+                        HStack(spacing: 12) {
+                            // Slot 1: Left Pod
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Left Pod (Medium)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                
+                                widgetMenuPicker(
+                                    selection: page.primaryWidget,
+                                    onSelect: { chosen in
+                                        if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                            store.preferences.customPages[idx].primaryWidget = chosen
+                                        }
+                                    }
+                                )
+                            }
+                            
+                            // Slot 2: Right Pod
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Right Pod (Medium)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                
+                                widgetMenuPicker(
+                                    selection: page.secondaryWidget ?? .lyrics,
+                                    onSelect: { chosen in
+                                        if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                            store.preferences.customPages[idx].secondaryWidget = chosen
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        
+                    case .fullStage:
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Full Stage (100% Width)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            
+                            widgetMenuPicker(
+                                selection: page.primaryWidget,
+                                onSelect: { chosen in
+                                    if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                        store.preferences.customPages[idx].primaryWidget = chosen
+                                    }
+                                }
+                            )
+                        }
+                        
+                    case .triplePod:
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Left Glance")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                widgetMenuPicker(
+                                    selection: page.primaryWidget,
+                                    onSelect: { chosen in
+                                        if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                            store.preferences.customPages[idx].primaryWidget = chosen
+                                        }
+                                    }
+                                )
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Center Glance")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                widgetMenuPicker(
+                                    selection: page.secondaryWidget ?? .hardwareHUD,
+                                    onSelect: { chosen in
+                                        if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                            store.preferences.customPages[idx].secondaryWidget = chosen
+                                        }
+                                    }
+                                )
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Right Glance")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                widgetMenuPicker(
+                                    selection: page.tertiaryWidget ?? .quickTools,
+                                    onSelect: { chosen in
+                                        if let idx = store.preferences.customPages.firstIndex(where: { $0.id == page.id }) {
+                                            store.preferences.customPages[idx].tertiaryWidget = chosen
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            .padding(.trailing, 8)
-            
-            // Enable / Disable Toggle
-            Toggle("", isOn: Binding(
-                get: { config.isEnabled },
-                set: { newValue in
-                    let enabledCount = store.preferences.pagesOrder.filter { $0.isEnabled }.count
-                    if !newValue && enabledCount <= 1 {
-                        return
-                    }
-                    if let idx = store.preferences.pagesOrder.firstIndex(where: { $0.id == config.id }) {
-                        store.preferences.pagesOrder[idx].isEnabled = newValue
-                        NotchPageManager.shared.validateActivePage()
+            .padding(14)
+        }
+    }
+    
+    @ViewBuilder
+    private func widgetMenuPicker(selection: NotchWidgetType, onSelect: @escaping (NotchWidgetType) -> Void) -> some View {
+        Menu {
+            ForEach(NotchWidgetType.allCases) { widget in
+                Button {
+                    onSelect(widget)
+                } label: {
+                    HStack {
+                        Image(systemName: widget.icon)
+                        Text(widget.title)
+                        if widget == selection {
+                            Image(systemName: "checkmark")
+                        }
                     }
                 }
-            ))
-            .labelsHidden()
-            .toggleStyle(.switch)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: selection.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.accentColor)
+                    .frame(width: 20)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(selection.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.primary)
+                    Text(selection.subtitle)
+                        .font(.system(size: 9.5))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(Color(NSColor.controlBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Color.gray.opacity(0.20), lineWidth: 0.8)
+            )
+        }
+        .menuStyle(.borderlessButton)
+    }
+    
+    private func addNewPage() {
+        let count = store.preferences.customPages.count + 1
+        let newPage = CustomNotchPage(
+            id: UUID().uuidString,
+            name: "Custom Page \(count)",
+            isEnabled: true,
+            layout: .dualPod,
+            primaryWidget: .nowPlaying,
+            secondaryWidget: .lyrics
+        )
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+            store.preferences.customPages.append(newPage)
+        }
+    }
+    
+    private func deletePage(at index: Int) {
+        guard store.preferences.customPages.count > 1 else { return }
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+            store.preferences.customPages.remove(at: index)
+            NotchPageManager.shared.validateActivePage()
         }
     }
     
     private func moveUp(at index: Int) {
         guard index > 0 else { return }
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-            store.preferences.pagesOrder.swapAt(index, index - 1)
+            store.preferences.customPages.swapAt(index, index - 1)
         }
     }
     
     private func moveDown(at index: Int) {
-        guard index < store.preferences.pagesOrder.count - 1 else { return }
+        guard index < store.preferences.customPages.count - 1 else { return }
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-            store.preferences.pagesOrder.swapAt(index, index + 1)
+            store.preferences.customPages.swapAt(index, index + 1)
         }
     }
 }
