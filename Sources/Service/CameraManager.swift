@@ -182,7 +182,9 @@ public final class CameraManager: NSObject, ObservableObject {
         }
         
         let settings = AVCapturePhotoSettings()
-        settings.isHighResolutionPhotoEnabled = true
+        if photoOutput.isHighResolutionCaptureEnabled {
+            settings.isHighResolutionPhotoEnabled = true
+        }
         
         sessionQueue.async { [weak self] in
             guard let self = self else { return }

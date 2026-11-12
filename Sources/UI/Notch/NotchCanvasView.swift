@@ -870,67 +870,75 @@ public struct NotchCanvasView: View {
         Group {
             switch page.layout {
             case .fullStage:
-                NotchWidgetHostView(type: page.slot1, size: .small)
+                NotchWidgetHostView(type: page.slot1, size: .hover)
                     .transition(.opacity)
                 
             case .dualPod:
-                HStack(spacing: 12) {
-                    NotchWidgetHostView(type: page.slot1, size: .small)
+                HStack(spacing: 14) {
+                    NotchWidgetHostView(type: page.slot1, size: .hover)
+                        .frame(maxWidth: .infinity)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.slot2 ?? .lyrics, size: .small)
+                    NotchWidgetHostView(type: page.slot2 ?? .lyrics, size: .hover)
+                        .frame(maxWidth: .infinity)
                 }
                 .transition(.opacity)
                 
             case .trio:
-                HStack(spacing: 8) {
-                    NotchWidgetHostView(type: page.slot1, size: .small)
+                HStack(spacing: 10) {
+                    NotchWidgetHostView(type: page.slot1, size: .hover)
+                        .frame(maxWidth: .infinity)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .small)
+                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .hover)
+                        .frame(maxWidth: .infinity)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .small)
+                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .hover)
+                        .frame(maxWidth: .infinity)
                 }
                 .transition(.opacity)
                 
             case .quad:
-                HStack(spacing: 6) {
-                    NotchWidgetHostView(type: page.slot1, size: .small)
+                HStack(spacing: 8) {
+                    NotchWidgetHostView(type: page.slot1, size: .hover)
+                        .frame(maxWidth: .infinity)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .small)
+                    NotchWidgetHostView(type: page.slot2 ?? .hardwareHUD, size: .hover)
+                        .frame(maxWidth: .infinity)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .small)
+                    NotchWidgetHostView(type: page.slot3 ?? .quickTools, size: .hover)
+                        .frame(maxWidth: .infinity)
                     
                     Rectangle()
                         .fill(Color.white.opacity(0.12))
                         .frame(width: 1, height: dividerH)
                     
-                    NotchWidgetHostView(type: page.slot4 ?? .scratchpad, size: .small)
+                    NotchWidgetHostView(type: page.slot4 ?? .scratchpad, size: .hover)
+                        .frame(maxWidth: .infinity)
                 }
                 .transition(.opacity)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 4)
-        .frame(maxWidth: .infinity, maxHeight: hoverH, alignment: .center)
+        .padding(.horizontal, 16)
+        .frame(width: CGFloat(store.preferences.hoverWidth), height: hoverH, alignment: .center)
     }
 }
 

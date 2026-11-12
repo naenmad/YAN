@@ -200,7 +200,8 @@ public struct NotchPageConfig: Codable, Identifiable, Equatable {
 // MARK: - Modular Widget Architecture
 
 public enum WidgetSize: String, Codable, CaseIterable, Identifiable {
-    case small = "small"     // Compact glance / hover bar
+    case hover = "hover"     // Compact 56pt hover glance (strictly 1-row, under 32pt)
+    case small = "small"     // 1x unit clicked box (Trio/Quad, ~115pt x 110pt)
     case medium = "medium"   // Dual-pod half stage (~260pt)
     case large = "large"     // Full single stage (100% width)
     
@@ -208,6 +209,7 @@ public enum WidgetSize: String, Codable, CaseIterable, Identifiable {
     
     public var label: String {
         switch self {
+        case .hover: return "Hover (Notch)"
         case .small: return "Small (Glance)"
         case .medium: return "Medium (Pod)"
         case .large: return "Large (Full)"

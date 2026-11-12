@@ -51,8 +51,10 @@ public struct NowPlayingWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -60,131 +62,129 @@ public struct NowPlayingWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                // Compact horizontal glance for hover bar (56pt)
-                HStack(spacing: 6) {
-                    if hasActiveMedia, let track = media.currentTrack {
-                        if let art = track.artwork {
-                            Image(nsImage: art)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 22, height: 22)
-                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        } else {
-                            Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
-                                .font(.system(size: 10))
-                                .foregroundColor(.cyan)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 0.5) {
-                            MarqueeText(track.title, fontSize: 9.5, fontWeight: .bold, color: .white)
-                            Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                                .font(.system(size: 8))
-                                .foregroundColor(.white.opacity(0.55))
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: 72, alignment: .leading)
-                        
-                        Button {
-                            media.togglePlayPause()
-                        } label: {
-                            Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(.black)
-                                .frame(width: 18, height: 18)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        HStack(spacing: 4) {
-                            Image(systemName: "music.note")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.40))
-                            Text("No Media")
-                                .font(.system(size: 9.5, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.50))
-                        }
-                    }
+    // Hover: Strictly single-row horizontal glance (< 30pt height)
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            if hasActiveMedia, let track = media.currentTrack {
+                if let art = track.artwork {
+                    Image(nsImage: art)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 26, height: 26)
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                } else {
+                    Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
+                        .font(.system(size: 11))
+                        .foregroundColor(.cyan)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                
+                VStack(alignment: .leading, spacing: 0.5) {
+                    MarqueeText(track.title, fontSize: 10, fontWeight: .bold, color: .white)
+                    Text(track.artist.isEmpty ? track.sourceApp : track.artist)
+                        .font(.system(size: 8.5))
+                        .foregroundColor(.white.opacity(0.55))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: 150, alignment: .leading)
+                
+                Button {
+                    media.togglePlayPause()
+                } label: {
+                    Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 8.5, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(width: 20, height: 20)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
             } else {
-                // Vertical 1x unit tile for clicked grid (Trio/Quad)
-                VStack(spacing: 4) {
-                    if hasActiveMedia, let track = media.currentTrack {
-                        if let art = track.artwork {
-                            Image(nsImage: art)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 34, height: 34)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.white.opacity(0.15), lineWidth: 0.6))
-                        } else {
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(Color.white.opacity(0.08))
-                                .frame(width: 34, height: 34)
-                                .overlay(
-                                    Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.cyan)
-                                )
-                        }
-                        
-                        MarqueeText(track.title, fontSize: 10, fontWeight: .bold, color: .white)
-                            .frame(maxWidth: .infinity)
-                        
-                        Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                            .font(.system(size: 8.5, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.55))
-                            .lineLimit(1)
-                        
-                        HStack(spacing: 12) {
-                            Button { media.previousTrack() } label: {
-                                Image(systemName: "backward.fill").font(.system(size: 9)).foregroundColor(.white.opacity(0.70))
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button { media.togglePlayPause() } label: {
-                                Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.black)
-                                    .frame(width: 20, height: 20)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button { media.nextTrack() } label: {
-                                Image(systemName: "forward.fill").font(.system(size: 9)).foregroundColor(.white.opacity(0.70))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.top, 2)
-                    } else {
-                        VStack(spacing: 4) {
-                            Spacer()
-                            Image(systemName: "music.note").font(.system(size: 16)).foregroundColor(.white.opacity(0.35))
-                            Text("No Media").font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.70))
-                            Button { media.togglePlayPause() } label: {
-                                Text("Resume")
-                                    .font(.system(size: 8.5, weight: .bold))
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.white)
-                                    .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
-                        }
-                    }
+                HStack(spacing: 5) {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.40))
+                    Text("No Media Playing")
+                        .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.50))
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(4)
             }
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    // Small: Clicked 1x unit box (Trio/Quad, ~115pt x 110pt)
+    private var smallClickedCard: some View {
+        VStack(spacing: 4) {
+            if hasActiveMedia, let track = media.currentTrack {
+                if let art = track.artwork {
+                    Image(nsImage: art)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.white.opacity(0.15), lineWidth: 0.6))
+                } else {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
+                                .font(.system(size: 15))
+                                .foregroundColor(.cyan)
+                        )
+                }
+                
+                MarqueeText(track.title, fontSize: 10, fontWeight: .bold, color: .white)
+                    .frame(maxWidth: .infinity)
+                
+                Text(track.artist.isEmpty ? track.sourceApp : track.artist)
+                    .font(.system(size: 8.5, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(1)
+                
+                HStack(spacing: 12) {
+                    Button { media.previousTrack() } label: {
+                        Image(systemName: "backward.fill").font(.system(size: 9)).foregroundColor(.white.opacity(0.70))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button { media.togglePlayPause() } label: {
+                        Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(width: 22, height: 22)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button { media.nextTrack() } label: {
+                        Image(systemName: "forward.fill").font(.system(size: 9)).foregroundColor(.white.opacity(0.70))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 2)
+            } else {
+                VStack(spacing: 4) {
+                    Spacer()
+                    Image(systemName: "music.note").font(.system(size: 16)).foregroundColor(.white.opacity(0.35))
+                    Text("No Media").font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.70))
+                    Button { media.togglePlayPause() } label: {
+                        Text("Resume")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.white)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(4)
     }
     
     private var mediumPod: some View {
@@ -377,8 +377,10 @@ public struct LyricsWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumStage
         case .large:
@@ -386,41 +388,39 @@ public struct LyricsWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 5) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 8.5))
-                        .foregroundColor(.cyan)
-                    MarqueeText(
-                        media.currentLyric ?? (media.currentTrack?.title ?? "No lyrics"),
-                        fontSize: 9.5,
-                        fontWeight: .semibold,
-                        color: .cyan
-                    )
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "quote.bubble.fill").font(.system(size: 8)).foregroundColor(.cyan)
-                        Text("LYRICS").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
-                    }
-                    Spacer(minLength: 0)
-                    MarqueeText(media.currentLyric ?? (media.currentTrack != nil ? "Instrumental" : "No Song"), fontSize: 11, fontWeight: .bold, color: .cyan)
-                    if let next = media.nextLyric {
-                        Text(next)
-                            .font(.system(size: 8.5, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.45))
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(4)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            }
+    private var hoverGlance: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "music.note")
+                .font(.system(size: 8.5))
+                .foregroundColor(.cyan)
+            MarqueeText(
+                media.currentLyric ?? (media.currentTrack?.title ?? "No lyrics"),
+                fontSize: 10,
+                fontWeight: .semibold,
+                color: .cyan
+            )
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "quote.bubble.fill").font(.system(size: 8)).foregroundColor(.cyan)
+                Text("LYRICS").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
+            }
+            Spacer(minLength: 0)
+            MarqueeText(media.currentLyric ?? (media.currentTrack != nil ? "Instrumental" : "No Song"), fontSize: 11, fontWeight: .bold, color: .cyan)
+            if let next = media.nextLyric {
+                Text(next)
+                    .font(.system(size: 8.5, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.45))
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
     
     private var mediumStage: some View {
@@ -545,8 +545,10 @@ public struct CalendarWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -554,60 +556,58 @@ public struct CalendarWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.red)
-                    Text(today, format: .dateTime.weekday(.abbreviated).day())
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    if let next = cal.events.first {
-                        Text("• " + next.title)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.60))
-                            .lineLimit(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                Button {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
-                } label: {
-                    VStack(spacing: 3) {
-                        Text(today, format: .dateTime.month(.abbreviated).locale(Locale(identifier: "en_US")))
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundColor(.red)
-                            .tracking(0.5)
-                        
-                        Text("\(calendar.component(.day, from: today))")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        
-                        Text(today, format: .dateTime.weekday(.wide))
-                            .font(.system(size: 8.5, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.55))
-                        
-                        if let next = cal.events.first {
-                            Text(next.title)
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundColor(.cyan)
-                                .lineLimit(1)
-                                .padding(.top, 1)
-                        } else {
-                            Text("No Events")
-                                .font(.system(size: 7.5, weight: .regular))
-                                .foregroundColor(.white.opacity(0.35))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+    private var hoverGlance: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "calendar")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.red)
+            Text(today, format: .dateTime.weekday(.abbreviated).day())
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+            if let next = cal.events.first {
+                Text("• " + next.title)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.white.opacity(0.60))
+                    .lineLimit(1)
             }
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        Button {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+        } label: {
+            VStack(spacing: 3) {
+                Text(today, format: .dateTime.month(.abbreviated).locale(Locale(identifier: "en_US")))
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.red)
+                    .tracking(0.5)
+                
+                Text("\(calendar.component(.day, from: today))")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                
+                Text(today, format: .dateTime.weekday(.wide))
+                    .font(.system(size: 8.5, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.55))
+                
+                if let next = cal.events.first {
+                    Text(next.title)
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(.cyan)
+                        .lineLimit(1)
+                        .padding(.top, 1)
+                } else {
+                    Text("No Events")
+                        .font(.system(size: 7.5, weight: .regular))
+                        .foregroundColor(.white.opacity(0.35))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
     
     private var mediumPod: some View {
@@ -630,7 +630,6 @@ public struct CalendarWidgetView: View {
                 }
                 
                 HStack(spacing: 10) {
-                    // Big date badge
                     VStack(spacing: 1) {
                         Text(today, format: .dateTime.month(.abbreviated))
                             .font(.system(size: 8, weight: .bold))
@@ -646,7 +645,6 @@ public struct CalendarWidgetView: View {
                     .background(Color.white.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                     
-                    // Agenda list
                     VStack(alignment: .leading, spacing: 3) {
                         if cal.events.isEmpty {
                             Text("No upcoming events today")
@@ -692,8 +690,10 @@ public struct ShelfWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -701,52 +701,71 @@ public struct ShelfWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 5) {
-                    Image(nsImage: ShelfManager.airDropIcon)
-                        .resizable()
-                        .frame(width: 14, height: 14)
-                    Text(shelf.items.isEmpty ? "Drop Stash" : "\(shelf.items.count) Stashed")
-                        .font(.system(size: 9, weight: .semibold, design: .rounded))
-                        .foregroundColor(shelf.items.isEmpty ? .white.opacity(0.70) : .cyan)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isTargeted ? Color.cyan.opacity(0.20) : Color.white.opacity(0.04))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(
-                                    isTargeted ? Color.cyan : Color.white.opacity(0.30),
-                                    style: StrokeStyle(lineWidth: isTargeted ? 1.6 : 1.0, dash: [4, 3])
-                                )
-                        )
-                    
-                    VStack(spacing: 3) {
-                        Image(nsImage: ShelfManager.airDropIcon)
-                            .resizable()
-                            .frame(width: 22, height: 22)
-                        Text(shelf.items.isEmpty ? "Drop Here" : "\(shelf.items.count) Items")
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            .foregroundColor(isTargeted ? .cyan : .white.opacity(0.85))
-                    }
-                }
-                .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
-                    shelf.extractURLs(from: providers) { urls in
-                        shelf.addItems(urls: urls)
-                    }
-                    return true
-                }
+    private var hoverGlance: some View {
+        HStack(spacing: 6) {
+            Image(nsImage: ShelfManager.airDropIcon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 16, height: 16)
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Text(shelf.items.isEmpty ? "AirDrop & Stash" : "\(shelf.items.count) Stashed")
+                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                    .foregroundColor(shelf.items.isEmpty ? .white.opacity(0.90) : .cyan)
+                Text("Drop files here")
+                    .font(.system(size: 7.5))
+                    .foregroundColor(.white.opacity(0.45))
             }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isTargeted ? Color.cyan.opacity(0.18) : Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(isTargeted ? Color.cyan : Color.white.opacity(0.22), style: StrokeStyle(lineWidth: 1.0, dash: [4, 3]))
+                )
+        )
+        .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
+            shelf.extractURLs(from: providers) { urls in
+                shelf.addItems(urls: urls)
+            }
+            return true
+        }
+    }
+    
+    private var smallClickedCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isTargeted ? Color.cyan.opacity(0.20) : Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(
+                            isTargeted ? Color.cyan : Color.white.opacity(0.30),
+                            style: StrokeStyle(lineWidth: isTargeted ? 1.6 : 1.0, dash: [4, 3])
+                        )
+                )
+            
+            VStack(spacing: 3) {
+                Image(nsImage: ShelfManager.airDropIcon)
+                    .resizable()
+                    .frame(width: 22, height: 22)
+                Text(shelf.items.isEmpty ? "Drop Here" : "\(shelf.items.count) Items")
+                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .foregroundColor(isTargeted ? .cyan : .white.opacity(0.85))
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
+            shelf.extractURLs(from: providers) { urls in
+                shelf.addItems(urls: urls)
+            }
+            return true
         }
     }
     
     private var mediumPod: some View {
         HStack(spacing: 8) {
-            // AirDrop square box
             Button {
                 shelf.openAirDropFolder()
             } label: {
@@ -777,7 +796,6 @@ public struct ShelfWidgetView: View {
                 return true
             }
             
-            // Temporary shelf tray
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.white.opacity(0.04))
@@ -835,8 +853,10 @@ public struct ClipboardWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -844,52 +864,57 @@ public struct ClipboardWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 5) {
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 9.5))
-                        .foregroundColor(.cyan)
-                    if let latest = clipboard.history.first {
-                        MarqueeText(latest.content, fontSize: 9.5, fontWeight: .medium, color: .white)
-                    } else {
-                        Text("Clipboard Empty").font(.system(size: 9)).foregroundColor(.white.opacity(0.45))
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    private var hoverGlance: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 9.5))
+                .foregroundColor(.cyan)
+            if let latest = clipboard.history.first {
+                MarqueeText(isCopied ? "Copied!" : latest.content, fontSize: 9.5, fontWeight: .medium, color: isCopied ? .cyan : .white)
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "doc.on.clipboard").font(.system(size: 8)).foregroundColor(.cyan)
-                        Text("CLIPBOARD").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
-                    }
-                    if let latest = clipboard.history.first {
-                        Button {
-                            clipboard.copyItem(latest)
-                            withAnimation { isCopied = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { isCopied = false }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(isCopied ? "Copied!" : latest.content)
-                                    .font(.system(size: 9, weight: isCopied ? .bold : .regular, design: .monospaced))
-                                    .foregroundColor(isCopied ? .cyan : .white.opacity(0.85))
-                                    .lineLimit(3)
-                            }
-                            .padding(5)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        Text("No items copied").font(.system(size: 8.5)).foregroundColor(.white.opacity(0.40))
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(4)
+                Text("Clipboard Empty").font(.system(size: 9)).foregroundColor(.white.opacity(0.45))
             }
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+        .onTapGesture {
+            if let latest = clipboard.history.first {
+                clipboard.copyItem(latest)
+                withAnimation { isCopied = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { isCopied = false }
+            }
+        }
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "doc.on.clipboard").font(.system(size: 8)).foregroundColor(.cyan)
+                Text("CLIPBOARD").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
+            }
+            if let latest = clipboard.history.first {
+                Button {
+                    clipboard.copyItem(latest)
+                    withAnimation { isCopied = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { isCopied = false }
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(isCopied ? "Copied!" : latest.content)
+                            .font(.system(size: 9, weight: isCopied ? .bold : .regular, design: .monospaced))
+                            .foregroundColor(isCopied ? .cyan : .white.opacity(0.85))
+                            .lineLimit(3)
+                    }
+                    .padding(5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("No items copied").font(.system(size: 8.5)).foregroundColor(.white.opacity(0.40))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(4)
     }
     
     private var mediumPod: some View {
@@ -956,8 +981,10 @@ public struct HardwareHUDWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -965,81 +992,75 @@ public struct HardwareHUDWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 8) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "cpu").font(.system(size: 8.5)).foregroundColor(.cyan)
-                        Text(String(format: "%.0f%%", stats.cpuUsage)).font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundColor(.cyan)
-                    }
-                    HStack(spacing: 3) {
-                        Image(systemName: "memorychip").font(.system(size: 8.5)).foregroundColor(.purple)
-                        Text(String(format: "%.1fG", stats.ramUsedGB)).font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundColor(.purple)
-                    }
-                    HStack(spacing: 3) {
-                        Image(systemName: stats.isCharging ? "bolt.fill" : "battery.100").font(.system(size: 8.5)).foregroundColor(.green)
-                        Text("\(stats.batteryLevel)%").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundColor(.green)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "cpu").font(.system(size: 8)).foregroundColor(.cyan)
-                        Text("SILICON HUD").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
-                    }
-                    
-                    // CPU Row
-                    VStack(alignment: .leading, spacing: 1) {
-                        HStack {
-                            Text("CPU").font(.system(size: 8, weight: .semibold)).foregroundColor(.white.opacity(0.70))
-                            Spacer()
-                            Text(String(format: "%.0f%%", stats.cpuUsage)).font(.system(size: 8.5, weight: .bold, design: .monospaced)).foregroundColor(.cyan)
-                        }
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.12)).frame(height: 3)
-                            Capsule().fill(Color.cyan).frame(width: max(2, 60.0 * CGFloat(min(1.0, stats.cpuUsage / 100.0))), height: 3)
-                        }
-                    }
-                    
-                    // RAM Row
-                    VStack(alignment: .leading, spacing: 1) {
-                        HStack {
-                            Text("RAM").font(.system(size: 8, weight: .semibold)).foregroundColor(.white.opacity(0.70))
-                            Spacer()
-                            Text(String(format: "%.1fG", stats.ramUsedGB)).font(.system(size: 8.5, weight: .bold, design: .monospaced)).foregroundColor(.purple)
-                        }
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.12)).frame(height: 3)
-                            Capsule().fill(Color.purple).frame(width: max(2, 60.0 * CGFloat(min(1.0, stats.ramPercentage / 100.0))), height: 3)
-                        }
-                    }
-                    
-                    // Battery Row
-                    HStack {
-                        Image(systemName: stats.isCharging ? "bolt.batteryblock.fill" : "battery.100")
-                            .font(.system(size: 8))
-                            .foregroundColor(stats.isCharging ? .green : .white)
-                        Text("\(stats.batteryLevel)%")
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            .foregroundColor(stats.isCharging ? .green : .white)
-                        Spacer()
-                        Text(stats.isLowPowerMode ? "Low Pwr" : "Optimal")
-                            .font(.system(size: 7))
-                            .foregroundColor(.white.opacity(0.40))
-                    }
-                    .padding(.top, 1)
-                }
-                .padding(4)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+    private var hoverGlance: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 3) {
+                Image(systemName: "cpu").font(.system(size: 8.5)).foregroundColor(.cyan)
+                Text(String(format: "%.0f%%", stats.cpuUsage)).font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundColor(.cyan)
+            }
+            HStack(spacing: 3) {
+                Image(systemName: "memorychip").font(.system(size: 8.5)).foregroundColor(.purple)
+                Text(String(format: "%.1fG", stats.ramUsedGB)).font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundColor(.purple)
+            }
+            HStack(spacing: 3) {
+                Image(systemName: stats.isCharging ? "bolt.batteryblock.fill" : "battery.100").font(.system(size: 8.5)).foregroundColor(stats.isCharging ? .green : .white)
+                Text("\(stats.batteryLevel)%").font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundColor(stats.isCharging ? .green : .white)
             }
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "cpu").font(.system(size: 8)).foregroundColor(.cyan)
+                Text("SILICON HUD").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
+            }
+            
+            VStack(alignment: .leading, spacing: 1) {
+                HStack {
+                    Text("CPU").font(.system(size: 8, weight: .semibold)).foregroundColor(.white.opacity(0.70))
+                    Spacer()
+                    Text(String(format: "%.0f%%", stats.cpuUsage)).font(.system(size: 8.5, weight: .bold, design: .monospaced)).foregroundColor(.cyan)
+                }
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.12)).frame(height: 3)
+                    Capsule().fill(Color.cyan).frame(width: max(2, 60.0 * CGFloat(min(1.0, stats.cpuUsage / 100.0))), height: 3)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 1) {
+                HStack {
+                    Text("RAM").font(.system(size: 8, weight: .semibold)).foregroundColor(.white.opacity(0.70))
+                    Spacer()
+                    Text(String(format: "%.1fG", stats.ramUsedGB)).font(.system(size: 8.5, weight: .bold, design: .monospaced)).foregroundColor(.purple)
+                }
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.12)).frame(height: 3)
+                    Capsule().fill(Color.purple).frame(width: max(2, 60.0 * CGFloat(min(1.0, stats.ramPercentage / 100.0))), height: 3)
+                }
+            }
+            
+            HStack {
+                Image(systemName: stats.isCharging ? "bolt.batteryblock.fill" : "battery.100")
+                    .font(.system(size: 8))
+                    .foregroundColor(stats.isCharging ? .green : .white)
+                Text("\(stats.batteryLevel)%")
+                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .foregroundColor(stats.isCharging ? .green : .white)
+                Spacer()
+                Text(stats.isLowPowerMode ? "Low Pwr" : "Optimal")
+                    .font(.system(size: 7))
+                    .foregroundColor(.white.opacity(0.40))
+            }
+            .padding(.top, 1)
+        }
+        .padding(4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var mediumPod: some View {
         HStack(spacing: 12) {
-            // Left: CPU & RAM
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 4) {
                     Image(systemName: "cpu").font(.system(size: 8.5)).foregroundColor(.cyan)
@@ -1075,7 +1096,6 @@ public struct HardwareHUDWidgetView: View {
             
             Rectangle().fill(Color.white.opacity(0.10)).frame(width: 1)
             
-            // Right: Battery & Power
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 4) {
                     Image(systemName: "bolt.fill").font(.system(size: 8.5)).foregroundColor(.green)
@@ -1118,8 +1138,10 @@ public struct QuickToolsWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -1127,33 +1149,33 @@ public struct QuickToolsWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 8) {
-                    toolCircleButton(icon: "display", isActive: tools.isCaffeineActive, activeColor: .cyan) { tools.toggleCaffeine() }
-                    toolCircleButton(icon: tools.isMicMuted ? "mic.slash.fill" : "mic.fill", isActive: tools.isMicMuted, activeColor: .red) { tools.toggleMicMute() }
-                    toolCircleButton(icon: "eyedropper", isActive: false, activeColor: .purple) { tools.pickScreenColor() }
-                    toolCircleButton(icon: "viewfinder.rectangular", isActive: false, activeColor: .blue) { tools.triggerScreenCapture() }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                VStack(spacing: 5) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "slider.horizontal.3").font(.system(size: 8)).foregroundColor(.cyan)
-                        Text("TOOLS").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
-                    }
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
-                        toolGridButton(icon: "display", label: "Awake", isActive: tools.isCaffeineActive, activeColor: .cyan) { tools.toggleCaffeine() }
-                        toolGridButton(icon: tools.isMicMuted ? "mic.slash.fill" : "mic.fill", label: "Mic", isActive: tools.isMicMuted, activeColor: .red) { tools.toggleMicMute() }
-                        toolGridButton(icon: "eyedropper", label: "Color", isActive: false, activeColor: .purple) { tools.pickScreenColor() }
-                        toolGridButton(icon: "viewfinder.rectangular", label: "Snip", isActive: false, activeColor: .blue) { tools.triggerScreenCapture() }
-                    }
-                }
-                .padding(4)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+    // Hover: Strictly single horizontal row of 4 circular icon buttons
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            toolCircleButton(icon: "display", isActive: tools.isCaffeineActive, activeColor: .cyan) { tools.toggleCaffeine() }
+            toolCircleButton(icon: tools.isMicMuted ? "mic.slash.fill" : "mic.fill", isActive: tools.isMicMuted, activeColor: .red) { tools.toggleMicMute() }
+            toolCircleButton(icon: "eyedropper", isActive: false, activeColor: .purple) { tools.pickScreenColor() }
+            toolCircleButton(icon: "viewfinder.rectangular", isActive: false, activeColor: .blue) { tools.triggerScreenCapture() }
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    // Small: Clicked 1x unit box (2x2 grid fits in clicked mode 110pt)
+    private var smallClickedCard: some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 4) {
+                Image(systemName: "slider.horizontal.3").font(.system(size: 8)).foregroundColor(.cyan)
+                Text("TOOLS").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
+            }
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                toolGridButton(icon: "display", label: "Awake", isActive: tools.isCaffeineActive, activeColor: .cyan) { tools.toggleCaffeine() }
+                toolGridButton(icon: tools.isMicMuted ? "mic.slash.fill" : "mic.fill", label: "Mic", isActive: tools.isMicMuted, activeColor: .red) { tools.toggleMicMute() }
+                toolGridButton(icon: "eyedropper", label: "Color", isActive: false, activeColor: .purple) { tools.pickScreenColor() }
+                toolGridButton(icon: "viewfinder.rectangular", label: "Snip", isActive: false, activeColor: .blue) { tools.triggerScreenCapture() }
             }
         }
+        .padding(4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var mediumPod: some View {
@@ -1209,9 +1231,9 @@ public struct QuickToolsWidgetView: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 9.5, weight: .semibold))
-                .foregroundColor(isActive ? activeColor : .white.opacity(0.80))
-                .frame(width: 22, height: 22)
-                .background(isActive ? activeColor.opacity(0.20) : Color.white.opacity(0.08))
+                .foregroundColor(isActive ? activeColor : .white.opacity(0.85))
+                .frame(width: 24, height: 24)
+                .background(isActive ? activeColor.opacity(0.22) : Color.white.opacity(0.08))
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
@@ -1272,8 +1294,10 @@ public struct ScratchpadWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -1281,37 +1305,35 @@ public struct ScratchpadWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 5) {
-                    Image(systemName: "note.text")
-                        .font(.system(size: 9.5))
-                        .foregroundColor(.cyan)
-                    MarqueeText(
-                        manager.note.isEmpty ? "Tap to write note..." : (manager.note.components(separatedBy: "\n").first ?? ""),
-                        fontSize: 9.5,
-                        fontWeight: .medium,
-                        color: .white
-                    )
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "note.text").font(.system(size: 8)).foregroundColor(.cyan)
-                        Text("NOTES").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
-                    }
-                    Text(manager.note.isEmpty ? "Type quick note in expanded mode..." : manager.note)
-                        .font(.system(size: 8.5))
-                        .foregroundColor(manager.note.isEmpty ? .white.opacity(0.35) : .white.opacity(0.85))
-                        .lineLimit(4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer(minLength: 0)
-                }
-                .padding(4)
-            }
+    private var hoverGlance: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "note.text")
+                .font(.system(size: 9.5))
+                .foregroundColor(.cyan)
+            MarqueeText(
+                manager.note.isEmpty ? "Tap to write note..." : (manager.note.components(separatedBy: "\n").first ?? ""),
+                fontSize: 9.5,
+                fontWeight: .medium,
+                color: .white
+            )
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "note.text").font(.system(size: 8)).foregroundColor(.cyan)
+                Text("NOTES").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.cyan)
+            }
+            Text(manager.note.isEmpty ? "Type quick note in expanded mode..." : manager.note)
+                .font(.system(size: 8.5))
+                .foregroundColor(manager.note.isEmpty ? .white.opacity(0.35) : .white.opacity(0.85))
+                .lineLimit(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
+        }
+        .padding(4)
     }
     
     private var mediumPod: some View {
@@ -1343,7 +1365,6 @@ public struct ScratchpadWidgetView: View {
                 .buttonStyle(.plain)
             }
             
-            // Note Editor Area
             TextEditor(text: Binding(
                 get: { manager.note },
                 set: { manager.note = $0 }
@@ -1355,7 +1376,6 @@ public struct ScratchpadWidgetView: View {
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .frame(maxHeight: 48)
             
-            // Next reminder preview
             if let reminder = manager.appleReminders.first(where: { !$0.isCompleted }) {
                 Button {
                     manager.toggleReminder(id: reminder.id)
@@ -1389,8 +1409,10 @@ public struct CameraWidgetView: View {
     
     public var body: some View {
         switch size {
+        case .hover:
+            hoverGlance
         case .small:
-            smallAdaptive
+            smallClickedCard
         case .medium:
             mediumPod
         case .large:
@@ -1398,55 +1420,65 @@ public struct CameraWidgetView: View {
         }
     }
     
-    private var smallAdaptive: some View {
-        GeometryReader { geo in
-            if geo.size.height < 65 {
-                HStack(spacing: 6) {
-                    ZStack {
-                        if camera.hasPermission && !camera.isPaused {
-                            CameraPreviewView(session: camera.session, isMirrored: camera.isMirrored)
-                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        } else {
-                            RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.6))
-                            Image(systemName: "camera").font(.system(size: 9)).foregroundColor(.white.opacity(0.5))
-                        }
-                    }
-                    .frame(width: 32, height: 20)
-                    
-                    Text("Mirror").font(.system(size: 9, weight: .semibold, design: .rounded)).foregroundColor(.white.opacity(0.85))
+    // Hover: Sleek live 16:9 mirror preview, perfectly fit in 56pt notch (height 36pt)
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                if camera.hasPermission && !camera.isPaused {
+                    CameraPreviewView(session: camera.session, isMirrored: camera.isMirrored)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.white.opacity(0.20), lineWidth: 0.8))
+                } else {
+                    RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.60))
+                    Image(systemName: "camera").font(.system(size: 11)).foregroundColor(.white.opacity(0.40))
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            } else {
-                VStack(spacing: 4) {
-                    ZStack {
-                        if camera.hasPermission && !camera.isPaused {
-                            CameraPreviewView(session: camera.session, isMirrored: camera.isMirrored)
-                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        } else {
-                            RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.6))
-                            Image(systemName: "camera").font(.system(size: 13)).foregroundColor(.white.opacity(0.4))
-                        }
-                    }
-                    .frame(width: 64, height: 48)
-                    
-                    Button {
-                        camera.capturePhoto()
-                    } label: {
-                        HStack(spacing: 3) {
-                            Circle().fill(Color.white).frame(width: 6, height: 6)
-                            Text("Snap").font(.system(size: 8, weight: .bold))
-                        }
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2.5)
-                        .background(Color.white)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
+            }
+            .frame(width: 62, height: 36)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.green).frame(width: 4.5, height: 4.5)
+                    Text("Notch Mirror")
+                        .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text("Click to expand")
+                    .font(.system(size: 8))
+                    .foregroundColor(.cyan.opacity(0.80))
             }
         }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                if camera.hasPermission && !camera.isPaused {
+                    CameraPreviewView(session: camera.session, isMirrored: camera.isMirrored)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: 6).fill(Color.black.opacity(0.6))
+                    Image(systemName: "camera").font(.system(size: 13)).foregroundColor(.white.opacity(0.4))
+                }
+            }
+            .frame(width: 72, height: 50)
+            
+            Button {
+                camera.capturePhoto()
+            } label: {
+                HStack(spacing: 3) {
+                    Circle().fill(Color.white).frame(width: 6, height: 6)
+                    Text("Snap").font(.system(size: 8, weight: .bold))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2.5)
+                .background(Color.white)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var mediumPod: some View {
@@ -1482,7 +1514,7 @@ public struct CameraWidgetView: View {
                         Image(systemName: "camera").font(.system(size: 18)).foregroundColor(.white.opacity(0.4))
                     }
                 }
-                .frame(width: 110, height: 62)
+                .frame(width: 120, height: 68)
                 
                 VStack(spacing: 6) {
                     Button {
