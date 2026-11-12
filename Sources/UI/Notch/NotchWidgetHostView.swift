@@ -63,7 +63,7 @@ public struct NowPlayingWidgetView: View {
         }
     }
     
-    // Hover: Strictly single-row horizontal glance (< 30pt height)
+    // Hover: Single-row horizontal music player with full controls (< 30pt height)
     private var hoverGlance: some View {
         HStack(spacing: 8) {
             if hasActiveMedia, let track = media.currentTrack {
@@ -71,34 +71,70 @@ public struct NowPlayingWidgetView: View {
                     Image(nsImage: art)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 26, height: 26)
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        .frame(width: 28, height: 28)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.6)
+                        )
                 } else {
-                    Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
-                        .font(.system(size: 11))
-                        .foregroundColor(.cyan)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.white.opacity(0.08))
+                            .frame(width: 28, height: 28)
+                        Image(systemName: track.mediaType == .video ? "play.rectangle.fill" : "music.note")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cyan)
+                    }
                 }
                 
-                VStack(alignment: .leading, spacing: 0.5) {
+                VStack(alignment: .leading, spacing: 1) {
                     MarqueeText(track.title, fontSize: 10, fontWeight: .bold, color: .white)
                     Text(track.artist.isEmpty ? track.sourceApp : track.artist)
-                        .font(.system(size: 8.5))
+                        .font(.system(size: 8.5, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                         .lineLimit(1)
                 }
-                .frame(maxWidth: 150, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Button {
-                    media.togglePlayPause()
-                } label: {
-                    Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 8.5, weight: .bold))
-                        .foregroundColor(.black)
-                        .frame(width: 20, height: 20)
-                        .background(Color.white)
-                        .clipShape(Circle())
+                HStack(spacing: 4) {
+                    Button {
+                        media.previousTrack()
+                    } label: {
+                        Image(systemName: "backward.fill")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundColor(.white.opacity(0.70))
+                            .frame(width: 18, height: 18)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        media.togglePlayPause()
+                    } label: {
+                        Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(width: 22, height: 22)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.25), radius: 2, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        media.nextTrack()
+                    } label: {
+                        Image(systemName: "forward.fill")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundColor(.white.opacity(0.70))
+                            .frame(width: 18, height: 18)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             } else {
                 HStack(spacing: 5) {
                     Image(systemName: "music.note")
@@ -391,19 +427,62 @@ public struct LyricsWidgetView: View {
         }
     }
     
+    // Hover: 2-line live teleprompter glance (Current synced lyric + Upcoming next line)
     private var hoverGlance: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "music.note")
-                .font(.system(size: 8.5))
-                .foregroundColor(.cyan)
-            MarqueeText(
-                media.currentLyric ?? (media.currentTrack?.title ?? "No lyrics"),
-                fontSize: 10,
-                fontWeight: .semibold,
-                color: .cyan
-            )
+        HStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .fill(Color.cyan.opacity(0.18))
+                    .frame(width: 20, height: 20)
+                
+                Image(systemName: "quote.bubble.fill")
+                    .font(.system(size: 8.5))
+                    .foregroundColor(.cyan)
+            }
+            
+            if !media.activeLyrics.isEmpty {
+                VStack(alignment: .leading, spacing: 1) {
+                    MarqueeText(
+                        media.currentLyric ?? (media.currentTrack?.title ?? "Instrumental"),
+                        fontSize: 10,
+                        fontWeight: .bold,
+                        color: .cyan
+                    )
+                    
+                    if let next = media.nextLyric, !next.isEmpty {
+                        Text(next)
+                            .font(.system(size: 8.5, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.48))
+                            .lineLimit(1)
+                    } else if let track = media.currentTrack {
+                        Text(track.artist.isEmpty ? "Synced Karaoke Feed" : track.artist)
+                            .font(.system(size: 7.5))
+                            .foregroundColor(.white.opacity(0.38))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let track = media.currentTrack {
+                VStack(alignment: .leading, spacing: 1) {
+                    MarqueeText(track.title, fontSize: 10, fontWeight: .bold, color: .cyan)
+                    Text("No synced lyrics • \(track.artist)")
+                        .font(.system(size: 8))
+                        .foregroundColor(.white.opacity(0.40))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "music.quarternote.3")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.35))
+                    Text("No Lyrics • Play Music")
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+            }
         }
-        .frame(maxHeight: .infinity, alignment: .center)
+        .frame(maxHeight: .infinity, alignment: .leading)
     }
     
     private var smallClickedCard: some View {
@@ -562,18 +641,35 @@ public struct CalendarWidgetView: View {
     }
     
     private var hoverGlance: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "calendar")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.red)
-            Text(today, format: .dateTime.weekday(.abbreviated).day())
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.red)
+                Text(today, format: .dateTime.weekday(.abbreviated).day())
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.red.opacity(0.16))
+            .clipShape(Capsule())
+            
             if let next = cal.events.first {
-                Text("• " + next.title)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.white.opacity(0.60))
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 0.5) {
+                    Text(next.title)
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(next.isAllDay ? "All day" : next.startDate.formatted(date: .omitted, time: .shortened))
+                        .font(.system(size: 8))
+                        .foregroundColor(.white.opacity(0.48))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("No events today")
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.45))
             }
         }
         .frame(maxHeight: .infinity, alignment: .center)
@@ -1111,19 +1207,48 @@ public struct HardwareHUDWidgetView: View {
     }
     
     private var hoverGlance: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 3) {
-                Image(systemName: "cpu").font(.system(size: 8.5)).foregroundColor(.cyan)
-                Text(String(format: "%.0f%%", stats.cpuUsage)).font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundColor(.cyan)
+        HStack(spacing: 8) {
+            // CPU Pill
+            HStack(spacing: 4) {
+                Image(systemName: "cpu")
+                    .font(.system(size: 8.5))
+                    .foregroundColor(.cyan)
+                Text(String(format: "%.0f%%", stats.cpuUsage))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
             }
-            HStack(spacing: 3) {
-                Image(systemName: "memorychip").font(.system(size: 8.5)).foregroundColor(.purple)
-                Text(String(format: "%.1fG", stats.ramUsedGB)).font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundColor(.purple)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.white.opacity(0.06))
+            .clipShape(Capsule())
+            
+            // RAM Pill
+            HStack(spacing: 4) {
+                Image(systemName: "memorychip")
+                    .font(.system(size: 8.5))
+                    .foregroundColor(.purple)
+                Text(String(format: "%.1fG", stats.ramUsedGB))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
             }
-            HStack(spacing: 3) {
-                Image(systemName: stats.isCharging ? "bolt.batteryblock.fill" : "battery.100").font(.system(size: 8.5)).foregroundColor(stats.isCharging ? .green : .white)
-                Text("\(stats.batteryLevel)%").font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundColor(stats.isCharging ? .green : .white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.white.opacity(0.06))
+            .clipShape(Capsule())
+            
+            // Battery Pill
+            HStack(spacing: 4) {
+                Image(systemName: stats.isCharging ? "bolt.batteryblock.fill" : "battery.100")
+                    .font(.system(size: 9))
+                    .foregroundColor(stats.isCharging ? .green : .white)
+                Text("\(stats.batteryLevel)%")
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(stats.isCharging ? .green : .white)
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(stats.isCharging ? Color.green.opacity(0.15) : Color.white.opacity(0.06))
+            .clipShape(Capsule())
         }
         .frame(maxHeight: .infinity, alignment: .center)
     }
@@ -1377,6 +1502,11 @@ public struct QuickToolsWidgetView: View {
                 .frame(width: 24, height: 24)
                 .background(isActive ? activeColor.opacity(0.22) : Color.white.opacity(0.08))
                 .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .strokeBorder(isActive ? activeColor.opacity(0.65) : Color.white.opacity(0.12), lineWidth: 0.8)
+                )
+                .shadow(color: isActive ? activeColor.opacity(0.40) : Color.clear, radius: 2)
         }
         .buttonStyle(.plain)
     }
@@ -1569,7 +1699,7 @@ public struct CameraWidgetView: View {
         }
     }
     
-    // Hover: Sleek live 16:9 mirror preview, perfectly fit in 56pt notch (height 36pt)
+    // Hover: Sleek live 16:9 mirror preview, perfectly fit in 56pt notch with quick snap
     private var hoverGlance: some View {
         HStack(spacing: 8) {
             ZStack {
@@ -1582,7 +1712,7 @@ public struct CameraWidgetView: View {
                     Image(systemName: "camera").font(.system(size: 11)).foregroundColor(.white.opacity(0.40))
                 }
             }
-            .frame(width: 62, height: 36)
+            .frame(width: 58, height: 32)
             
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
@@ -1591,10 +1721,29 @@ public struct CameraWidgetView: View {
                         .font(.system(size: 9.5, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
-                Text("Click to expand")
-                    .font(.system(size: 8))
-                    .foregroundColor(.cyan.opacity(0.80))
+                Text("Live feed")
+                    .font(.system(size: 7.5))
+                    .foregroundColor(.white.opacity(0.45))
             }
+            
+            Spacer(minLength: 0)
+            
+            Button {
+                camera.capturePhoto()
+            } label: {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.white).frame(width: 5, height: 5)
+                    Text("Snap")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3.5)
+                .background(Color.white)
+                .clipShape(Capsule())
+                .shadow(color: Color.black.opacity(0.25), radius: 2, y: 1)
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxHeight: .infinity, alignment: .center)
     }
