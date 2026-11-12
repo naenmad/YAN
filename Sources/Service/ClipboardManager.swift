@@ -156,12 +156,14 @@ public final class ClipboardManager: ObservableObject {
             NSPasteboard.general.setString(item.content, forType: .string)
         }
         lastChangeCount = NSPasteboard.general.changeCount
+        HapticService.shared.success()
     }
     
     public func copy(content: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(content, forType: .string)
         lastChangeCount = NSPasteboard.general.changeCount
+        HapticService.shared.success()
     }
     
     public func clearHistory() {

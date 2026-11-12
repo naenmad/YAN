@@ -59,6 +59,7 @@ public final class NotchPageManager: ObservableObject {
     public func switchToPage(index: Int) {
         let count = enabledCustomPages.count
         guard index >= 0 && index < count && activePageIndex != index else { return }
+        HapticService.shared.pageSwitch()
         withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
             activePageIndex = index
         }
@@ -92,6 +93,7 @@ public final class NotchPageManager: ObservableObject {
     public func nextPage() {
         let count = enabledCustomPages.count
         guard count > 1 else { return }
+        HapticService.shared.pageSwitch()
         withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
             activePageIndex = (activePageIndex + 1) % count
         }
@@ -100,6 +102,7 @@ public final class NotchPageManager: ObservableObject {
     public func previousPage() {
         let count = enabledCustomPages.count
         guard count > 1 else { return }
+        HapticService.shared.pageSwitch()
         withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
             activePageIndex = (activePageIndex - 1 + count) % count
         }
@@ -183,5 +186,37 @@ public final class NotchPageManager: ObservableObject {
             return true
         }
         return false
+    }
+}
+
+// MARK: - Native macOS Trackpad Haptic Feedback
+
+public final class HapticService {
+    public static let shared = HapticService()
+    
+    private init() {}
+    
+    /// Haptic klik ringan untuk tombol, toggle, dan kontrol media
+    public func click() {
+        NSHapticFeedbackManager.defaultPerformer.perform(
+            .generic,
+            performanceTime: .default
+        )
+    }
+    
+    /// Haptic tactile snap saat swipe perpindahan halaman notch atau snap slider
+    public func pageSwitch() {
+        NSHapticFeedbackManager.defaultPerformer.perform(
+            .alignment,
+            performanceTime: .default
+        )
+    }
+    
+    /// Haptic konfirmasi aksi sukses (copy clipboard, foto tertangkap, file masuk stash)
+    public func success() {
+        NSHapticFeedbackManager.defaultPerformer.perform(
+            .alignment,
+            performanceTime: .now
+        )
     }
 }

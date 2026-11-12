@@ -62,6 +62,9 @@ public final class ShelfManager: ObservableObject {
                 items.append(ShelfItem(url: url))
             }
         }
+        if !urls.isEmpty {
+            HapticService.shared.success()
+        }
     }
     
     public func removeItem(id: UUID) {

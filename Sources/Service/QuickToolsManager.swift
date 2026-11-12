@@ -21,6 +21,7 @@ public final class QuickToolsManager: ObservableObject {
     // MARK: - Keep Awake (Caffeine)
     
     public func toggleCaffeine() {
+        HapticService.shared.click()
         if isCaffeineActive {
             disableCaffeine()
         } else {
@@ -67,6 +68,7 @@ public final class QuickToolsManager: ObservableObject {
                     self?.lastSampledHex = hex
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(hex, forType: .string)
+                    HapticService.shared.success()
                     self?.showToast("Copied \(hex)")
                 }
             }
@@ -76,6 +78,7 @@ public final class QuickToolsManager: ObservableObject {
     // MARK: - Screen Capture to Clipboard
     
     public func triggerScreenCapture() {
+        HapticService.shared.click()
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             let task = Process()
             task.launchPath = "/usr/sbin/screencapture"
@@ -84,6 +87,7 @@ public final class QuickToolsManager: ObservableObject {
             task.waitUntilExit()
             if task.terminationStatus == 0 {
                 Task { @MainActor [weak self] in
+                    HapticService.shared.success()
                     self?.showToast("Screenshot Copied")
                 }
             }
@@ -93,6 +97,7 @@ public final class QuickToolsManager: ObservableObject {
     // MARK: - Microphone Mute Toggle
     
     public func toggleMicMute() {
+        HapticService.shared.click()
         let targetVolume = isMicMuted ? 75 : 0
         let script = "set volume input volume \(targetVolume)"
         var error: NSDictionary?

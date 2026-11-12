@@ -293,6 +293,11 @@ public struct NotchCanvasView: View {
                 if isExpanded {
                     VStack(spacing: 5) {
                         largeUnifiedContent
+                            .id(pageManager.activePageIndex)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.98)),
+                                removal: .opacity.combined(with: .scale(scale: 0.98))
+                            ))
                         pageIndicatorBar
                     }
                     .padding(.bottom, 6)
@@ -837,17 +842,17 @@ public struct NotchCanvasView: View {
                 Capsule()
                     .fill(pageManager.activePageIndex == index ? Color.cyan : Color.white.opacity(0.25))
                     .frame(
-                        width: pageManager.activePageIndex == index ? 14 : 4.5,
+                        width: pageManager.activePageIndex == index ? 16 : 4.5,
                         height: 4
                     )
+                    .shadow(color: pageManager.activePageIndex == index ? Color.cyan.opacity(0.55) : Color.clear, radius: 2)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                            pageManager.switchToPage(index: index)
-                        }
+                        pageManager.switchToPage(index: index)
                     }
             }
         }
+        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: pageManager.activePageIndex)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(

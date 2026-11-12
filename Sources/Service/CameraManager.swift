@@ -232,6 +232,9 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             pb.clearContents()
             pb.writeObjects([finalImage])
             
+            // Haptic feedback sukses
+            HapticService.shared.success()
+            
             // 2. Refresh ClipboardManager agar langsung muncul di halaman Clipboard
             ClipboardManager.shared.checkPasteboard()
             

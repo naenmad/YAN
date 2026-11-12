@@ -88,17 +88,30 @@ public struct NowPlayingWidgetView: View {
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     MarqueeText(track.title, fontSize: 10, fontWeight: .bold, color: .white)
                     Text(track.artist.isEmpty ? track.sourceApp : track.artist)
                         .font(.system(size: 8.5, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                         .lineLimit(1)
+                    
+                    if track.duration > 0 {
+                        let prog = min(1.0, max(0.0, media.currentPlaybackPosition / track.duration))
+                        GeometryReader { barGeo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.white.opacity(0.12))
+                                Capsule().fill(Color.cyan)
+                                    .frame(width: max(2, barGeo.size.width * CGFloat(prog)))
+                            }
+                        }
+                        .frame(height: 2)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
                 HStack(spacing: 4) {
                     Button {
+                        HapticService.shared.click()
                         media.previousTrack()
                     } label: {
                         Image(systemName: "backward.fill")
@@ -111,6 +124,7 @@ public struct NowPlayingWidgetView: View {
                     .buttonStyle(.plain)
                     
                     Button {
+                        HapticService.shared.click()
                         media.togglePlayPause()
                     } label: {
                         Image(systemName: track.isPlaying ? "pause.fill" : "play.fill")
@@ -124,6 +138,7 @@ public struct NowPlayingWidgetView: View {
                     .buttonStyle(.plain)
                     
                     Button {
+                        HapticService.shared.click()
                         media.nextTrack()
                     } label: {
                         Image(systemName: "forward.fill")
@@ -427,17 +442,15 @@ public struct LyricsWidgetView: View {
         }
     }
     
-    // Hover: 2-line live teleprompter glance (Current synced lyric + Upcoming next line)
+    // Hover: 2-line live teleprompter glance (Current synced lyric + Upcoming next line + Live Audio Waveform)
     private var hoverGlance: some View {
         HStack(spacing: 7) {
             ZStack {
                 Circle()
                     .fill(Color.cyan.opacity(0.18))
-                    .frame(width: 20, height: 20)
+                    .frame(width: 22, height: 22)
                 
-                Image(systemName: "quote.bubble.fill")
-                    .font(.system(size: 8.5))
-                    .foregroundColor(.cyan)
+                AudioWaveformBars(isPlaying: media.currentTrack?.isPlaying ?? false)
             }
             
             if !media.activeLyrics.isEmpty {
