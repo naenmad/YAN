@@ -229,6 +229,7 @@ public struct NotchCanvasView: View {
                 
                 // 2. Notch Specular Rim & Border
                 notchBorderLayer
+                    .allowsHitTesting(false)
                 
                 // 3. Resting State: Mini Media Glance
                 if !isExpanded && !isHovered && hasActiveMedia, let track = media.currentTrack {
@@ -286,6 +287,7 @@ public struct NotchCanvasView: View {
                         .padding(.horizontal, 14)
                         .padding(.top, 7)
                         .transition(.opacity)
+                        .allowsHitTesting(false)
                     }
                 }
                 
@@ -321,27 +323,15 @@ public struct NotchCanvasView: View {
                     isHovered = hovering
                 }
             }
-            .gesture(
-                TapGesture(count: 2).onEnded {
-                    SettingsWindowController.shared.show()
-                }
-                .exclusively(
-                    before: TapGesture(count: 1).onEnded {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                            isExpanded.toggle()
-                        }
-                    }
-                )
-            )
             .simultaneousGesture(
-                DragGesture(minimumDistance: 25)
+                DragGesture(minimumDistance: 35)
                     .onEnded { value in
                         let dx = value.translation.width
                         let dy = abs(value.translation.height)
-                        if abs(dx) > dy * 1.2 {
-                            if dx < -25 {
+                        if abs(dx) > dy * 1.5 {
+                            if dx < -35 {
                                 pageManager.nextPage()
-                            } else if dx > 25 {
+                            } else if dx > 35 {
                                 pageManager.previousPage()
                             }
                         }
@@ -605,74 +595,89 @@ public struct NotchCanvasView: View {
             earRadius: CGFloat(store.preferences.earRadius)
         )
         
-        switch store.preferences.themeMode {
-        case .classicBlack:
-            shape
-                .fill(Color.black)
+        Group {
+            switch store.preferences.themeMode {
+            case .classicBlack:
+                shape
+                    .fill(Color.black)
+                    .shadow(
+                        color: Color.black.opacity(isExpanded ? 0.60 : (isHovered ? 0.40 : 0.0)),
+                        radius: isExpanded ? 18 : 12,
+                        x: 0,
+                        y: isExpanded ? 8 : 5
+                    )
+                    
+            case .liquidGlass:
+                ZStack {
+                    // A. Native Apple Frosted Material
+                    shape
+                        .fill(.ultraThinMaterial)
+                    
+                    // B. Translucent Deep Glass Tint
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.05, green: 0.06, blue: 0.08).opacity(store.preferences.glassOpacity),
+                                    Color(red: 0.02, green: 0.02, blue: 0.03).opacity(store.preferences.glassOpacity * 0.95)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    
+                    // C. Liquid Specular Sheen (Refractive top gloss)
+                    shape
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.18),
+                                    Color.white.opacity(0.04),
+                                    Color.clear
+                                ],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                }
                 .shadow(
-                    color: Color.black.opacity(isExpanded ? 0.60 : (isHovered ? 0.40 : 0.0)),
-                    radius: isExpanded ? 18 : 12,
+                    color: Color.black.opacity(isExpanded ? 0.55 : 0.38),
+                    radius: isExpanded ? 22 : 14,
                     x: 0,
-                    y: isExpanded ? 8 : 5
+                    y: isExpanded ? 9 : 5
                 )
                 
-        case .liquidGlass:
-            ZStack {
-                // A. Native Apple Frosted Material
-                shape
-                    .fill(.ultraThinMaterial)
-                
-                // B. Translucent Deep Glass Tint
-                shape
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.05, green: 0.06, blue: 0.08).opacity(store.preferences.glassOpacity),
-                                Color(red: 0.02, green: 0.02, blue: 0.03).opacity(store.preferences.glassOpacity * 0.95)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                
-                // C. Liquid Specular Sheen (Refractive top gloss)
-                shape
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.18),
-                                Color.white.opacity(0.04),
-                                Color.clear
-                            ],
-                            startPoint: .top,
-                            endPoint: .center
-                        )
-                    )
+            case .clearGlass:
+                ZStack {
+                    // A. Native Material Frost
+                    shape
+                        .fill(.thinMaterial)
+                    
+                    // B. Minimal Dark Tint for Text Legibility
+                    shape
+                        .fill(Color.black.opacity(store.preferences.glassOpacity * 0.42))
+                }
+                .shadow(
+                    color: Color.black.opacity(isExpanded ? 0.45 : 0.28),
+                    radius: isExpanded ? 16 : 10,
+                    x: 0,
+                    y: isExpanded ? 7 : 4
+                )
             }
-            .shadow(
-                color: Color.black.opacity(isExpanded ? 0.55 : 0.38),
-                radius: isExpanded ? 22 : 14,
-                x: 0,
-                y: isExpanded ? 9 : 5
-            )
-            
-        case .clearGlass:
-            ZStack {
-                // A. Native Material Frost
-                shape
-                    .fill(.thinMaterial)
-                
-                // B. Minimal Dark Tint for Text Legibility
-                shape
-                    .fill(Color.black.opacity(store.preferences.glassOpacity * 0.42))
-            }
-            .shadow(
-                color: Color.black.opacity(isExpanded ? 0.45 : 0.28),
-                radius: isExpanded ? 16 : 10,
-                x: 0,
-                y: isExpanded ? 7 : 4
-            )
         }
+        .contentShape(shape)
+        .gesture(
+            TapGesture(count: 2).onEnded {
+                SettingsWindowController.shared.show()
+            }
+            .exclusively(
+                before: TapGesture(count: 1).onEnded {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        isExpanded.toggle()
+                    }
+                }
+            )
+        )
     }
     
     // MARK: - Notch Border & Specular Rim Layer

@@ -47,6 +47,7 @@ public final class MediaRemoteBridge {
     private var streamProcess: Process?
     private var stdoutPipe: Pipe?
     private var buffer = Data()
+    private var lastKnownBundleIdentifier: String?
     
     // Direct C function for instant 0ms command execution & seeking
     private typealias MRSendCommandFunc = @convention(c) (Int32, AnyObject?) -> Bool
@@ -126,6 +127,9 @@ public final class MediaRemoteBridge {
             
             if let message = try? JSONDecoder().decode(NowPlayingMessage.self, from: lineData),
                let payload = message.payload {
+                if let bundle = payload.bundleIdentifier, !bundle.isEmpty {
+                    self.lastKnownBundleIdentifier = bundle
+                }
                 DispatchQueue.main.async { [weak self] in
                     self?.onNowPlayingUpdate?(payload)
                 }
@@ -134,51 +138,76 @@ public final class MediaRemoteBridge {
     }
     
     private func resolveAdapterPaths() -> (scriptURL: URL, frameworkURL: URL)? {
-        let possibleDirs: [URL?] = [
-            Bundle.main.resourceURL?.appendingPathComponent("mediaremote-adapter"),
-            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/mediaremote-adapter"),
-            URL(fileURLWithPath: "/Users/mac/Developer/YAN Another Notch/Resources/mediaremote-adapter")
+        let scriptCandidates: [URL?] = [
+            Bundle.main.resourceURL?.appendingPathComponent("mediaremote-adapter.pl"),
+            Bundle.main.resourceURL?.appendingPathComponent("mediaremote-adapter/mediaremote-adapter.pl"),
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/mediaremote-adapter.pl"),
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/mediaremote-adapter/mediaremote-adapter.pl"),
+            URL(fileURLWithPath: "/Users/mac/Developer/YAN Another Notch/Resources/mediaremote-adapter/mediaremote-adapter.pl")
         ]
         
-        for dir in possibleDirs {
-            guard let dir = dir else { continue }
-            let script = dir.appendingPathComponent("mediaremote-adapter.pl")
-            let framework = dir.appendingPathComponent("MediaRemoteAdapter.framework")
-            if FileManager.default.fileExists(atPath: script.path) && FileManager.default.fileExists(atPath: framework.path) {
-                return (script, framework)
-            }
+        let frameworkCandidates: [URL?] = [
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Frameworks/MediaRemoteAdapter.framework"),
+            Bundle.main.resourceURL?.appendingPathComponent("MediaRemoteAdapter.framework"),
+            Bundle.main.resourceURL?.appendingPathComponent("mediaremote-adapter/MediaRemoteAdapter.framework"),
+            URL(fileURLWithPath: "/Users/mac/Developer/YAN Another Notch/Resources/mediaremote-adapter/MediaRemoteAdapter.framework")
+        ]
+        
+        guard let script = scriptCandidates.compactMap({ $0 }).first(where: { FileManager.default.fileExists(atPath: $0.path) }),
+              let framework = frameworkCandidates.compactMap({ $0 }).first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
+            return nil
         }
-        return nil
+        return (script, framework)
     }
     
     // Commands: 0 = Play, 1 = Pause, 2 = TogglePlayPause, 4 = NextTrack, 5 = PreviousTrack
     public func togglePlayPause() {
-        if directSendCommand?(2, nil) != true {
-            executeFallbackCommand(id: 2)
-        }
+        sendCommand(id: 2, actionName: "playpause")
     }
     
     public func play() {
-        if directSendCommand?(0, nil) != true {
-            executeFallbackCommand(id: 0)
-        }
+        sendCommand(id: 0, actionName: "play")
     }
     
     public func pause() {
-        if directSendCommand?(1, nil) != true {
-            executeFallbackCommand(id: 1)
-        }
+        sendCommand(id: 1, actionName: "pause")
     }
     
     public func nextTrack() {
-        if directSendCommand?(4, nil) != true {
-            executeFallbackCommand(id: 4)
-        }
+        sendCommand(id: 4, actionName: "next track")
     }
     
     public func previousTrack() {
-        if directSendCommand?(5, nil) != true {
-            executeFallbackCommand(id: 5)
+        sendCommand(id: 5, actionName: "previous track")
+    }
+    
+    private func sendCommand(id: Int32, actionName: String) {
+        // 1. Eksekusi AppleScript instan jika aplikasi yang sedang aktif adalah Apple Music atau Spotify
+        let bundleId = lastKnownBundleIdentifier?.lowercased() ?? ""
+        if bundleId.contains("music") {
+            runAppleScript("tell application \"Music\" to \(actionName)")
+        } else if bundleId.contains("spotify") {
+            runAppleScript("tell application \"Spotify\" to \(actionName)")
+        } else {
+            // Cek running applications jika bundle identifier belum tertangkap dari stream
+            let runningApps = NSWorkspace.shared.runningApplications
+            if runningApps.contains(where: { $0.bundleIdentifier == "com.apple.Music" }) {
+                runAppleScript("tell application \"Music\" to \(actionName)")
+            } else if runningApps.contains(where: { $0.bundleIdentifier == "com.spotify.client" }) {
+                runAppleScript("tell application \"Spotify\" to \(actionName)")
+            }
+        }
+        
+        // 2. Eksekusi MediaRemote adapter (berlaku universal untuk semua media player di macOS: Safari, Chrome, YouTube, Podcasts, dsb.)
+        executeFallbackCommand(id: id)
+    }
+    
+    private func runAppleScript(_ script: String) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            var error: NSDictionary?
+            if let appleScript = NSAppleScript(source: script) {
+                appleScript.executeAndReturnError(&error)
+            }
         }
     }
     
