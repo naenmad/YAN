@@ -324,15 +324,27 @@ public struct NotchCanvasView: View {
                 }
             }
             .simultaneousGesture(
-                DragGesture(minimumDistance: 35)
+                DragGesture(minimumDistance: 30)
                     .onEnded { value in
                         let dx = value.translation.width
-                        let dy = abs(value.translation.height)
-                        if abs(dx) > dy * 1.5 {
-                            if dx < -35 {
+                        let dy = value.translation.height
+                        if abs(dx) > abs(dy) * 1.3 {
+                            if dx < -30 {
                                 pageManager.nextPage()
-                            } else if dx > 35 {
+                            } else if dx > 30 {
                                 pageManager.previousPage()
+                            }
+                        } else if abs(dy) > abs(dx) * 1.3 {
+                            if dy > 30 {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                    isExpanded = true
+                                }
+                                HapticService.shared.pageSwitch()
+                            } else if dy < -30 {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                    isExpanded = false
+                                }
+                                HapticService.shared.click()
                             }
                         }
                     }
@@ -376,6 +388,16 @@ public struct NotchCanvasView: View {
                 isExpanded.toggle()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .expandNotch)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                isExpanded = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .collapseNotch)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                isExpanded = false
+            }
+        }
         .onChange(of: isExpanded) { expanded in
             if expanded {
                 startOutsideClickMonitoring()
@@ -412,13 +434,28 @@ public struct NotchCanvasView: View {
         }
     }
     
-    // MARK: - Trackpad 2-Finger Swipe Handling
+    // MARK: - Trackpad Swipe & Gesture Handling
+    
+    private func isMouseInNotchArea() -> Bool {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return false }
+        let mouseLoc = NSEvent.mouseLocation
+        let screenFrame = screen.frame
+        let notchW = CGFloat(store.preferences.clickedWidth) + 160
+        let notchH = CGFloat(max(store.preferences.clickedHeight, store.preferences.hoverHeight) + 80)
+        let areaRect = NSRect(
+            x: screenFrame.midX - (notchW / 2),
+            y: screenFrame.maxY - notchH,
+            width: notchW,
+            height: notchH
+        )
+        return areaRect.contains(mouseLoc) || mouseLoc.y >= (screenFrame.maxY - 45)
+    }
     
     private func startTrackpadSwipeMonitoring() {
         stopTrackpadSwipeMonitoring()
         trackpadSwipeMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .swipe]) { event in
-            // Intersep swipe horizontal trackpad hanya saat kursor mouse berada di area notch (hovering atau expanded)
-            guard self.isHovered || self.isExpanded else { return event }
+            // Intersep swipe trackpad saat kursor berada di notch atau notch sedang hovering/expanded
+            guard self.isHovered || self.isExpanded || self.isMouseInNotchArea() else { return event }
             
             if event.type == .scrollWheel {
                 if self.pageManager.handleScrollWheel(event: event) {
@@ -433,7 +470,7 @@ public struct NotchCanvasView: View {
         }
         
         trackpadSwipeGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .swipe]) { event in
-            guard self.isHovered || self.isExpanded else { return }
+            guard self.isHovered || self.isExpanded || self.isMouseInNotchArea() else { return }
             if event.type == .scrollWheel {
                 _ = self.pageManager.handleScrollWheel(event: event)
             } else if event.type == .swipe {

@@ -3,6 +3,8 @@ import Carbon
 
 extension Notification.Name {
     public static let toggleNotchExpansion = Notification.Name("com.yan.notchanothernotch.toggleExpansion")
+    public static let expandNotch = Notification.Name("com.yan.notchanothernotch.expand")
+    public static let collapseNotch = Notification.Name("com.yan.notchanothernotch.collapse")
 }
 
 @MainActor
