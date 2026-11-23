@@ -33,14 +33,14 @@ public final class NotchPageManager: ObservableObject {
     /// Backward-compatible property mapping to legacy NotchPage
     public var activePage: NotchPage {
         switch currentCustomPage.primaryWidget {
-        case .nowPlaying, .lyrics: return .dashboard
+        case .nowPlaying, .lyrics, .calendar, .clockTimer, .networkSpeed, .appLauncher, .weather, .miniCalculator:
+            return .dashboard
         case .shelf: return .dropZone
         case .clipboard: return .clipboard
         case .hardwareHUD: return .hardwareHUD
         case .quickTools: return .quickTools
         case .scratchpad: return .scratchpad
         case .camera: return .camera
-        case .calendar: return .dashboard
         }
     }
     
@@ -76,14 +76,14 @@ public final class NotchPageManager: ObservableObject {
         let pages = enabledCustomPages
         if let idx = pages.firstIndex(where: {
             switch $0.primaryWidget {
-            case .nowPlaying, .lyrics: return page == .dashboard
+            case .nowPlaying, .lyrics, .calendar, .clockTimer, .networkSpeed, .appLauncher, .weather, .miniCalculator:
+                return page == .dashboard
             case .shelf: return page == .dropZone
             case .clipboard: return page == .clipboard
             case .hardwareHUD: return page == .hardwareHUD
             case .quickTools: return page == .quickTools
             case .scratchpad: return page == .scratchpad
             case .camera: return page == .camera
-            case .calendar: return page == .dashboard
             }
         }) {
             switchToPage(index: idx)

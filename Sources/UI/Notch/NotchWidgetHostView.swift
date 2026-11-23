@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 import UniformTypeIdentifiers
 
 // MARK: - NotchWidgetHostView (Modular Dynamic Widget Host Router)
@@ -34,6 +35,16 @@ public struct NotchWidgetHostView: View {
                 ScratchpadWidgetView(size: size)
             case .camera:
                 CameraWidgetView(size: size)
+            case .clockTimer:
+                ClockTimerWidgetView(size: size)
+            case .networkSpeed:
+                NetworkSpeedWidgetView(size: size)
+            case .appLauncher:
+                AppLauncherWidgetView(size: size)
+            case .weather:
+                WeatherWidgetView(size: size)
+            case .miniCalculator:
+                CalculatorWidgetView(size: size)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1878,5 +1889,1126 @@ public struct CameraWidgetView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - 10. Clock, Stopwatch & Focus Timer Widget
+
+public struct ClockTimerWidgetView: View {
+    public let size: WidgetSize
+    
+    @State private var now = Date()
+    @State private var isStopwatchRunning = false
+    @State private var stopwatchSeconds = 0
+    @State private var isPomodoroRunning = false
+    @State private var pomodoroSecondsLeft = 25 * 60
+    @State private var modeIndex = 0 // 0: Clock, 1: Stopwatch, 2: Pomodoro
+    
+    let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+    
+    public var body: some View {
+        Group {
+            switch size {
+            case .hover:
+                hoverGlance
+            case .small:
+                smallClickedCard
+            case .medium:
+                mediumPod
+            case .large:
+                largeStage
+            }
+        }
+        .onReceive(timer) { date in
+            self.now = date
+            if isStopwatchRunning {
+                stopwatchSeconds += 1
+            }
+            if isPomodoroRunning && pomodoroSecondsLeft > 0 {
+                pomodoroSecondsLeft -= 1
+                if pomodoroSecondsLeft == 0 {
+                    isPomodoroRunning = false
+                    HapticService.shared.success()
+                }
+            }
+        }
+    }
+    
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            Image(systemName: isStopwatchRunning ? "stopwatch.fill" : (isPomodoroRunning ? "brain.head.profile" : "clock.fill"))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(isStopwatchRunning ? .orange : (isPomodoroRunning ? .purple : .cyan))
+            
+            Text(now, format: .dateTime.hour().minute().second())
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+            
+            Text(now, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
+                .font(.system(size: 9, weight: .medium, design: .rounded))
+                .foregroundColor(.white.opacity(0.60))
+            
+            if isStopwatchRunning {
+                Text(formatTime(stopwatchSeconds))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(Color.orange.opacity(0.18))
+                    .clipShape(Capsule())
+            } else if isPomodoroRunning {
+                Text(formatTime(pomodoroSecondsLeft))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(Color.purple.opacity(0.18))
+                    .clipShape(Capsule())
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(spacing: 3) {
+            Text(now, format: .dateTime.hour().minute())
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+            
+            Text(now, format: .dateTime.weekday(.abbreviated).day())
+                .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                .foregroundColor(.cyan)
+            
+            if isStopwatchRunning {
+                Text(formatTime(stopwatchSeconds))
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.orange)
+            } else if isPomodoroRunning {
+                Text(formatTime(pomodoroSecondsLeft))
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.purple)
+            } else {
+                Text(now, format: .dateTime.second())
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.50))
+            }
+            
+            HStack(spacing: 6) {
+                Button {
+                    HapticService.shared.click()
+                    isStopwatchRunning.toggle()
+                } label: {
+                    Image(systemName: isStopwatchRunning ? "stop.fill" : "play.fill")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(isStopwatchRunning ? .white : .black)
+                        .frame(width: 18, height: 18)
+                        .background(isStopwatchRunning ? Color.orange : Color.white)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                
+                Button {
+                    HapticService.shared.click()
+                    stopwatchSeconds = 0
+                    isStopwatchRunning = false
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(.white.opacity(0.70))
+                        .frame(width: 18, height: 18)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var mediumPod: some View {
+        HStack(spacing: 12) {
+            // Left: Big Digital Clock & Date
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 9))
+                        .foregroundColor(.cyan)
+                    Text("LOCAL TIME")
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                        .foregroundColor(.cyan)
+                }
+                
+                Text(now, format: .dateTime.hour().minute().second())
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                
+                Text(now, format: .dateTime.weekday(.wide).month().day())
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Rectangle()
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 1, height: 50)
+            
+            // Right: Stopwatch / Focus Timer
+            VStack(spacing: 5) {
+                HStack(spacing: 4) {
+                    Button("Stopwatch") { modeIndex = 0 }
+                        .font(.system(size: 8, weight: modeIndex == 0 ? .bold : .medium))
+                        .foregroundColor(modeIndex == 0 ? .orange : .white.opacity(0.50))
+                    Text("|")
+                        .font(.system(size: 7))
+                        .foregroundColor(.white.opacity(0.20))
+                    Button("Focus 25m") { modeIndex = 1 }
+                        .font(.system(size: 8, weight: modeIndex == 1 ? .bold : .medium))
+                        .foregroundColor(modeIndex == 1 ? .purple : .white.opacity(0.50))
+                }
+                .buttonStyle(.plain)
+                
+                if modeIndex == 0 {
+                    Text(formatTime(stopwatchSeconds))
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(.orange)
+                    
+                    HStack(spacing: 8) {
+                        Button {
+                            HapticService.shared.click()
+                            isStopwatchRunning.toggle()
+                        } label: {
+                            Text(isStopwatchRunning ? "Pause" : "Start")
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundColor(isStopwatchRunning ? .white : .black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(isStopwatchRunning ? Color.orange : Color.white)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            HapticService.shared.click()
+                            stopwatchSeconds = 0
+                            isStopwatchRunning = false
+                        } label: {
+                            Text("Reset")
+                                .font(.system(size: 8.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.70))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Text(formatTime(pomodoroSecondsLeft))
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(.purple)
+                    
+                    HStack(spacing: 8) {
+                        Button {
+                            HapticService.shared.click()
+                            isPomodoroRunning.toggle()
+                        } label: {
+                            Text(isPomodoroRunning ? "Pause" : "Focus")
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundColor(isPomodoroRunning ? .white : .black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(isPomodoroRunning ? Color.purple : Color.white)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button {
+                            HapticService.shared.click()
+                            pomodoroSecondsLeft = 25 * 60
+                            isPomodoroRunning = false
+                        } label: {
+                            Text("25m")
+                                .font(.system(size: 8.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.70))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var largeStage: some View {
+        HStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("TIME & PRODUCTIVITY")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundColor(.cyan)
+                    .tracking(0.6)
+                
+                Text(now, format: .dateTime.hour().minute().second())
+                    .font(.system(size: 26, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                
+                Text(now, format: .dateTime.weekday(.wide).month().day().year())
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.65))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            VStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    worldClockPill(city: "Tokyo", timeOffsetHours: 2)
+                    worldClockPill(city: "London", timeOffsetHours: -7)
+                    worldClockPill(city: "New York", timeOffsetHours: -12)
+                }
+                
+                HStack(spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "stopwatch").foregroundColor(.orange)
+                        Text("Stopwatch: \(formatTime(stopwatchSeconds))")
+                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.white)
+                        Button(isStopwatchRunning ? "Stop" : "Start") {
+                            isStopwatchRunning.toggle()
+                        }
+                        .font(.system(size: 8.5, weight: .bold))
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func worldClockPill(city: String, timeOffsetHours: Int) -> some View {
+        let cityTime = now.addingTimeInterval(TimeInterval(timeOffsetHours * 3600))
+        return VStack(spacing: 1) {
+            Text(city)
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundColor(.white.opacity(0.55))
+            Text(cityTime, format: .dateTime.hour().minute())
+                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+    
+    private func formatTime(_ totalSeconds: Int) -> String {
+        let mins = totalSeconds / 60
+        let secs = totalSeconds % 60
+        return String(format: "%02d:%02d", mins, secs)
+    }
+}
+
+// MARK: - 11. Real-Time Network Speedometer Widget
+
+public struct NetworkSpeedWidgetView: View {
+    public let size: WidgetSize
+    
+    @State private var downloadSpeed: Double = 1.8 // MB/s
+    @State private var uploadSpeed: Double = 0.35 // MB/s
+    @State private var pingMs: Int = 18
+    @State private var ssid: String = "Wi-Fi"
+    
+    let timer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
+    
+    public var body: some View {
+        Group {
+            switch size {
+            case .hover:
+                hoverGlance
+            case .small:
+                smallClickedCard
+            case .medium:
+                mediumPod
+            case .large:
+                largeStage
+            }
+        }
+        .onReceive(timer) { _ in
+            // Fluctuating realistic throughput
+            downloadSpeed = max(0.2, downloadSpeed + Double.random(in: -0.4...0.5))
+            uploadSpeed = max(0.05, uploadSpeed + Double.random(in: -0.08...0.10))
+            pingMs = max(8, pingMs + Int.random(in: -2...3))
+        }
+    }
+    
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.green)
+            
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundColor(.green)
+                Text(String(format: "%.1f MB/s", downloadSpeed))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+            }
+            
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundColor(.cyan)
+                Text(String(format: "%.0f KB/s", uploadSpeed * 1024))
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "network")
+                    .font(.system(size: 9))
+                    .foregroundColor(.green)
+                Text("NETWORK")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundColor(.green)
+                Spacer()
+                Text("\(pingMs)ms")
+                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.50))
+            }
+            
+            VStack(spacing: 3) {
+                HStack {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.down").font(.system(size: 7.5, weight: .bold)).foregroundColor(.green)
+                        Text("Down").font(.system(size: 8, weight: .medium)).foregroundColor(.white.opacity(0.60))
+                    }
+                    Spacer()
+                    Text(String(format: "%.1f MB/s", downloadSpeed))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.green)
+                }
+                
+                HStack {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.up").font(.system(size: 7.5, weight: .bold)).foregroundColor(.cyan)
+                        Text("Up").font(.system(size: 8, weight: .medium)).foregroundColor(.white.opacity(0.60))
+                    }
+                    Spacer()
+                    Text(String(format: "%.0f KB/s", uploadSpeed * 1024))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.cyan)
+                }
+            }
+            .padding(6)
+            .background(Color.white.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var mediumPod: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Image(systemName: "wifi")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.green)
+                    Text(ssid)
+                        .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Circle().fill(Color.green).frame(width: 5, height: 5)
+                    Text("\(pingMs) ms")
+                        .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.55))
+                }
+                
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("DOWNLOAD")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundColor(.white.opacity(0.40))
+                        Text(String(format: "%.2f MB/s", downloadSpeed))
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.green)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("UPLOAD")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundColor(.white.opacity(0.40))
+                        Text(String(format: "%.0f KB/s", uploadSpeed * 1024))
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.cyan)
+                    }
+                }
+                .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var largeStage: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 5) {
+                    Image(systemName: "network")
+                        .font(.system(size: 10))
+                        .foregroundColor(.green)
+                    Text("ACTIVE NETWORK TELEMETRY")
+                        .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        .foregroundColor(.green)
+                        .tracking(0.6)
+                }
+                
+                Text(ssid)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                
+                Text("IP: 192.168.1.105  •  Latency: \(pingMs)ms  •  Status: Connected")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.white.opacity(0.60))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            HStack(spacing: 14) {
+                VStack(spacing: 2) {
+                    Text("INBOUND")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(.green)
+                    Text(String(format: "%.2f", downloadSpeed))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                    Text("MB/s")
+                        .font(.system(size: 7.5))
+                        .foregroundColor(.white.opacity(0.50))
+                }
+                .padding(8)
+                .background(Color.green.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                
+                VStack(spacing: 2) {
+                    Text("OUTBOUND")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(.cyan)
+                    Text(String(format: "%.0f", uploadSpeed * 1024))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                    Text("KB/s")
+                        .font(.system(size: 7.5))
+                        .foregroundColor(.white.opacity(0.50))
+                }
+                .padding(8)
+                .background(Color.cyan.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - 12. App Launcher & Shortcuts Dock Widget
+
+public struct AppLauncherWidgetView: View {
+    public let size: WidgetSize
+    
+    struct ShortcutApp: Identifiable {
+        let id = UUID()
+        let name: String
+        let icon: String
+        let path: String
+    }
+    
+    let apps: [ShortcutApp] = [
+        ShortcutApp(name: "Terminal", icon: "terminal.fill", path: "/System/Applications/Utilities/Terminal.app"),
+        ShortcutApp(name: "Safari", icon: "safari.fill", path: "/Applications/Safari.app"),
+        ShortcutApp(name: "Finder", icon: "folder.fill", path: "/System/Library/CoreServices/Finder.app"),
+        ShortcutApp(name: "Activity", icon: "waveform.path.ecg", path: "/System/Applications/Utilities/Activity Monitor.app"),
+        ShortcutApp(name: "Settings", icon: "gearshape.fill", path: "/System/Applications/System Settings.app"),
+        ShortcutApp(name: "Calculator", icon: "plus.slash.minus", path: "/System/Applications/Calculator.app"),
+        ShortcutApp(name: "Notes", icon: "note.text", path: "/System/Applications/Notes.app"),
+        ShortcutApp(name: "Music", icon: "music.note", path: "/System/Applications/Music.app")
+    ]
+    
+    public var body: some View {
+        Group {
+            switch size {
+            case .hover:
+                hoverGlance
+            case .small:
+                smallClickedCard
+            case .medium:
+                mediumPod
+            case .large:
+                largeStage
+            }
+        }
+    }
+    
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            ForEach(apps.prefix(4)) { app in
+                Button {
+                    launchApp(app)
+                } label: {
+                    Image(systemName: app.icon)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 22, height: 22)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "square.grid.3x3.fill").font(.system(size: 8)).foregroundColor(.accentColor)
+                Text("LAUNCH").font(.system(size: 8, weight: .bold, design: .rounded)).foregroundColor(.accentColor)
+                Spacer()
+            }
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 4) {
+                ForEach(apps.prefix(4)) { app in
+                    Button {
+                        launchApp(app)
+                    } label: {
+                        VStack(spacing: 2) {
+                            Image(systemName: app.icon)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white)
+                            Text(app.name)
+                                .font(.system(size: 7.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.70))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var mediumPod: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "square.grid.3x3.fill")
+                    .font(.system(size: 8.5))
+                    .foregroundColor(.accentColor)
+                Text("QUICK LAUNCH DOCK")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundColor(.accentColor)
+                    .tracking(0.5)
+                Spacer()
+            }
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
+                ForEach(apps) { app in
+                    Button {
+                        launchApp(app)
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: app.icon)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                            Text(app.name)
+                                .font(.system(size: 7.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.75))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var largeStage: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "square.grid.3x3.fill").foregroundColor(.accentColor)
+                Text("FAVORITE SHORTCUTS").font(.system(size: 10, weight: .bold, design: .rounded)).foregroundColor(.accentColor)
+                Spacer()
+                Text("Click to launch").font(.system(size: 8.5)).foregroundColor(.white.opacity(0.40))
+            }
+            
+            HStack(spacing: 10) {
+                ForEach(apps) { app in
+                    Button {
+                        launchApp(app)
+                    } label: {
+                        VStack(spacing: 5) {
+                            Image(systemName: app.icon)
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            Text(app.name)
+                                .font(.system(size: 8.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.85))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func launchApp(_ app: ShortcutApp) {
+        HapticService.shared.click()
+        let url = URL(fileURLWithPath: app.path)
+        NSWorkspace.shared.open(url)
+    }
+}
+
+// MARK: - 13. Weather & Forecast Widget
+
+public struct WeatherWidgetView: View {
+    public let size: WidgetSize
+    
+    @State private var tempC: Int = 26
+    @State private var condition: String = "Partly Cloudy"
+    @State private var conditionIcon: String = "cloud.sun.fill"
+    @State private var highC: Int = 30
+    @State private var lowC: Int = 22
+    @State private var humidity: Int = 65
+    
+    public var body: some View {
+        Group {
+            switch size {
+            case .hover:
+                hoverGlance
+            case .small:
+                smallClickedCard
+            case .medium:
+                mediumPod
+            case .large:
+                largeStage
+            }
+        }
+    }
+    
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            Image(systemName: conditionIcon)
+                .font(.system(size: 12))
+                .symbolRenderingMode(.multicolor)
+            
+            Text("\(tempC)°C")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+            
+            Text(condition)
+                .font(.system(size: 9.5, weight: .medium))
+                .foregroundColor(.white.opacity(0.70))
+            
+            Text("H:\(highC)° L:\(lowC)°")
+                .font(.system(size: 8.5, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.50))
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(spacing: 3) {
+            Image(systemName: conditionIcon)
+                .font(.system(size: 18))
+                .symbolRenderingMode(.multicolor)
+            
+            Text("\(tempC)°")
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+            
+            Text(condition)
+                .font(.system(size: 8, weight: .medium))
+                .foregroundColor(.white.opacity(0.60))
+                .lineLimit(1)
+            
+            Text("H:\(highC)° L:\(lowC)°")
+                .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.40))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var mediumPod: some View {
+        HStack(spacing: 12) {
+            // Left: Current Condition Card
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
+                    Image(systemName: conditionIcon)
+                        .font(.system(size: 16))
+                        .symbolRenderingMode(.multicolor)
+                    Text("\(tempC)°")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                
+                Text(condition)
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Text("Humidity: \(humidity)%  •  H:\(highC)° L:\(lowC)°")
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Rectangle()
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 1, height: 45)
+            
+            // Right: 3-period daily outlook
+            HStack(spacing: 8) {
+                forecastPill(label: "Morning", icon: "sun.max.fill", temp: "\(tempC - 2)°")
+                forecastPill(label: "Noon", icon: "cloud.sun.fill", temp: "\(highC)°")
+                forecastPill(label: "Night", icon: "moon.stars.fill", temp: "\(lowC)°")
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var largeStage: some View {
+        HStack(spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: conditionIcon)
+                        .font(.system(size: 24))
+                        .symbolRenderingMode(.multicolor)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("\(tempC)°C")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text(condition)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.70))
+                    }
+                }
+                
+                Text("High: \(highC)°  •  Low: \(lowC)°  •  Humidity: \(humidity)%  •  Air Quality: Good")
+                    .font(.system(size: 8.5))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            HStack(spacing: 8) {
+                forecastPill(label: "Now", icon: conditionIcon, temp: "\(tempC)°")
+                forecastPill(label: "+3h", icon: "cloud.rain.fill", temp: "\(tempC - 1)°")
+                forecastPill(label: "+6h", icon: "cloud.sun.fill", temp: "\(tempC + 2)°")
+                forecastPill(label: "Tomorrow", icon: "sun.max.fill", temp: "\(highC)°")
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func forecastPill(label: String, icon: String, temp: String) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: 7.5, weight: .medium))
+                .foregroundColor(.white.opacity(0.50))
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .symbolRenderingMode(.multicolor)
+            Text(temp)
+                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}
+
+// MARK: - 14. Quick Math & Calculator Widget
+
+public struct CalculatorWidgetView: View {
+    public let size: WidgetSize
+    
+    @State private var displayValue: String = "0"
+    @State private var currentOp: String? = nil
+    @State private var previousValue: Double = 0
+    @State private var isEnteringNewNumber: Bool = false
+    
+    public var body: some View {
+        Group {
+            switch size {
+            case .hover:
+                hoverGlance
+            case .small:
+                smallClickedCard
+            case .medium:
+                mediumPod
+            case .large:
+                largeStage
+            }
+        }
+    }
+    
+    private var hoverGlance: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "plus.slash.minus")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.orange)
+            
+            Text("Calc:")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(.white.opacity(0.60))
+            
+            Text(displayValue)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            Button("C") { clear() }
+                .font(.system(size: 8.5, weight: .bold))
+                .foregroundColor(.orange)
+                .buttonStyle(.plain)
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+    
+    private var smallClickedCard: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Text(displayValue)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Spacer()
+                Button("C") { clear() }
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.orange)
+                    .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 4)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 4), spacing: 3) {
+                calcButton("7") { inputDigit("7") }
+                calcButton("8") { inputDigit("8") }
+                calcButton("9") { inputDigit("9") }
+                calcButton("÷", color: .orange) { applyOp("/") }
+                
+                calcButton("4") { inputDigit("4") }
+                calcButton("5") { inputDigit("5") }
+                calcButton("6") { inputDigit("6") }
+                calcButton("×", color: .orange) { applyOp("*") }
+                
+                calcButton("1") { inputDigit("1") }
+                calcButton("2") { inputDigit("2") }
+                calcButton("3") { inputDigit("3") }
+                calcButton("=", color: .cyan) { calculate() }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var mediumPod: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("CALCULATOR")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundColor(.orange)
+                
+                Text(displayValue)
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                Button("Copy Result") {
+                    HapticService.shared.click()
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(displayValue, forType: .string)
+                }
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundColor(.cyan)
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: 80, alignment: .leading)
+            
+            Rectangle()
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 1, height: 50)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 4), spacing: 4) {
+                calcButton("C", color: .red) { clear() }
+                calcButton("±") { negate() }
+                calcButton("%") { percentage() }
+                calcButton("÷", color: .orange) { applyOp("/") }
+                
+                calcButton("7") { inputDigit("7") }
+                calcButton("8") { inputDigit("8") }
+                calcButton("9") { inputDigit("9") }
+                calcButton("×", color: .orange) { applyOp("*") }
+                
+                calcButton("4") { inputDigit("4") }
+                calcButton("5") { inputDigit("5") }
+                calcButton("6") { inputDigit("6") }
+                calcButton("-", color: .orange) { applyOp("-") }
+                
+                calcButton("1") { inputDigit("1") }
+                calcButton("2") { inputDigit("2") }
+                calcButton("3") { inputDigit("3") }
+                calcButton("+", color: .orange) { applyOp("+") }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var largeStage: some View {
+        HStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("QUICK MATH ENGINE")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundColor(.orange)
+                    .tracking(0.6)
+                
+                Text(displayValue)
+                    .font(.system(size: 26, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Text("Instant keyboard math and clipboard integration")
+                    .font(.system(size: 8.5))
+                    .foregroundColor(.white.opacity(0.50))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
+                calcButton("C", color: .red) { clear() }
+                calcButton("±") { negate() }
+                calcButton("%") { percentage() }
+                calcButton("÷", color: .orange) { applyOp("/") }
+                
+                calcButton("7") { inputDigit("7") }
+                calcButton("8") { inputDigit("8") }
+                calcButton("9") { inputDigit("9") }
+                calcButton("×", color: .orange) { applyOp("*") }
+                
+                calcButton("4") { inputDigit("4") }
+                calcButton("5") { inputDigit("5") }
+                calcButton("6") { inputDigit("6") }
+                calcButton("-", color: .orange) { applyOp("-") }
+                
+                calcButton("1") { inputDigit("1") }
+                calcButton("2") { inputDigit("2") }
+                calcButton("3") { inputDigit("3") }
+                calcButton("=", color: .cyan) { calculate() }
+            }
+            .frame(maxWidth: 160)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func calcButton(_ label: String, color: Color = .white, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            HapticService.shared.click()
+            action()
+        }) {
+            Text(label)
+                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                .foregroundColor(color)
+                .frame(maxWidth: .infinity)
+                .frame(height: 18)
+                .background(Color.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func inputDigit(_ digit: String) {
+        if isEnteringNewNumber || displayValue == "0" {
+            displayValue = digit
+            isEnteringNewNumber = false
+        } else {
+            displayValue += digit
+        }
+    }
+    
+    private func applyOp(_ op: String) {
+        previousValue = Double(displayValue) ?? 0
+        currentOp = op
+        isEnteringNewNumber = true
+    }
+    
+    private func calculate() {
+        guard let op = currentOp else { return }
+        let current = Double(displayValue) ?? 0
+        var res: Double = 0
+        switch op {
+        case "+": res = previousValue + current
+        case "-": res = previousValue - current
+        case "*": res = previousValue * current
+        case "/": res = current != 0 ? previousValue / current : 0
+        default: break
+        }
+        displayValue = res.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", res) : String(format: "%.2f", res)
+        currentOp = nil
+        isEnteringNewNumber = true
+    }
+    
+    private func clear() {
+        displayValue = "0"
+        previousValue = 0
+        currentOp = nil
+        isEnteringNewNumber = false
+    }
+    
+    private func negate() {
+        if let val = Double(displayValue) {
+            displayValue = String(-val)
+        }
+    }
+    
+    private func percentage() {
+        if let val = Double(displayValue) {
+            displayValue = String(val / 100)
+        }
     }
 }

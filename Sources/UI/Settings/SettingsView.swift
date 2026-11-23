@@ -586,6 +586,10 @@ private struct PagesCategoryView: View {
     @State private var isTargetedSlot3: Bool = false
     @State private var isTargetedSlot4: Bool = false
     
+    // Live Widget Preview Inspector
+    @State private var previewedWidget: NotchWidgetType? = .nowPlaying
+    @State private var previewSizeTab: WidgetSize = .medium
+    
     private var currentPageIndex: Int {
         let idx = selectedPageTab - 1
         return max(0, min(idx, store.preferences.customPages.count - 1))
@@ -817,19 +821,26 @@ private struct PagesCategoryView: View {
                 .padding(10)
             }
             
-            // 4. Draggable Available Widgets Drawer
+            // 4. Draggable Available Widgets Drawer & Live Inspector
             GroupBox(label: HStack(spacing: 6) {
-                Image(systemName: "hand.draw.fill")
+                Image(systemName: "square.grid.2x2.fill")
                     .foregroundColor(.accentColor)
-                Text("Available Widgets Library").font(.subheadline.weight(.semibold))
+                Text("Available Widgets Library (\(NotchWidgetType.allCases.count) Widgets)").font(.subheadline.weight(.semibold))
                 Spacer()
-                Text("Drag any card to a slot above")
+                Text("Click any widget to preview or drag to slot")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }) {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170, maximum: 230), spacing: 10)], spacing: 10) {
-                    ForEach(NotchWidgetType.allCases) { widget in
-                        widgetPaletteCard(for: widget)
+                VStack(spacing: 12) {
+                    // Live Widget Inspector & Interactive Multi-Size Preview
+                    if let inspected = previewedWidget {
+                        widgetLiveInspector(for: inspected)
+                    }
+                    
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180, maximum: 240), spacing: 10)], spacing: 10) {
+                        ForEach(NotchWidgetType.allCases) { widget in
+                            widgetPaletteCard(for: widget)
+                        }
                     }
                 }
                 .padding(10)
@@ -1086,177 +1097,309 @@ private struct PagesCategoryView: View {
             }
         }()
         
-        ZStack {
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(isTargeted ? Color.cyan.opacity(0.20) : Color.white.opacity(0.06))
+        let slotWidgetSize: WidgetSize = {
+            if unitLabel.contains("Full") { return .large }
+            if unitLabel.contains("2x") { return .medium }
+            return .small
+        }()
+        
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isTargeted ? Color.cyan.opacity(0.25) : Color.black.opacity(0.35))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(
-                            isTargeted ? Color.cyan : Color.white.opacity(0.15),
+                            isTargeted ? Color.cyan : Color.white.opacity(0.18),
                             lineWidth: isTargeted ? 2.0 : 0.8
                         )
                 )
                 .shadow(color: isTargeted ? Color.cyan.opacity(0.35) : Color.clear, radius: 4)
             
-            VStack(spacing: 5) {
-                // Top: Unit badge + Dropdown Menu
-                HStack {
+            // 1. Live Interactive Widget Content Preview
+            NotchWidgetHostView(type: widget, size: slotWidgetSize)
+                .padding(.top, 24)
+                .padding(.horizontal, 6)
+                .padding(.bottom, 6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+            
+            // 2. Translucent Floating Header: Slot Badge & Widget Picker Menu
+            HStack {
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(Color.cyan)
+                        .frame(width: 4, height: 4)
                     Text(unitLabel)
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(Color.white.opacity(0.14))
-                        .foregroundColor(.white.opacity(0.85))
-                        .clipShape(Capsule())
-                    
-                    Spacer()
-                    
-                    Menu {
-                        ForEach(NotchWidgetType.allCases) { w in
-                            Button {
-                                assignWidget(w, toSlot: slotNumber)
-                            } label: {
-                                HStack {
-                                    Image(systemName: w.icon)
-                                    Text(w.title)
-                                    if w == widget {
-                                        Image(systemName: "checkmark")
-                                    }
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.95))
+                }
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.black.opacity(0.65))
+                .clipShape(Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5))
+                
+                Spacer()
+                
+                Menu {
+                    ForEach(NotchWidgetType.allCases) { w in
+                        Button {
+                            assignWidget(w, toSlot: slotNumber)
+                        } label: {
+                            HStack {
+                                Image(systemName: w.icon)
+                                Text(w.title)
+                                if w == widget {
+                                    Image(systemName: "checkmark")
                                 }
                             }
                         }
-                    } label: {
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 8.5, weight: .bold))
-                            .foregroundColor(.white.opacity(0.7))
-                            .frame(width: 18, height: 18)
-                            .background(Color.white.opacity(0.10))
-                            .clipShape(Circle())
                     }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: widget.icon)
+                            .font(.system(size: 7.5))
+                        Text(widget.title)
+                            .font(.system(size: 8, weight: .semibold))
+                            .lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 6.5, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.black.opacity(0.65))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5))
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 6)
-                
-                // Widget Content (Icon & Title)
-                VStack(spacing: 3) {
-                    Image(systemName: widget.icon)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Text(widget.title)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text(isTargeted ? "Drop to replace!" : "Drag widget or click")
-                        .font(.system(size: 8.5, weight: .medium))
-                        .foregroundColor(isTargeted ? .cyan : .white.opacity(0.45))
-                        .lineLimit(1)
-                }
-                .padding(.bottom, 6)
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
+            .padding(.horizontal, 6)
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 76)
+        .frame(height: 98)
         .onDrop(of: [UTType.plainText, UTType.text], isTargeted: isTargetedBinding) { providers in
             handleDrop(providers: providers, slotNumber: slotNumber)
         }
     }
     
+    // MARK: - Live Interactive Widget Inspector & Multi-Size Preview
+    
     @ViewBuilder
-    private func widgetPaletteCard(for widget: NotchWidgetType) -> some View {
-        HStack(spacing: 8) {
-            // Icon Square
-            ZStack {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.15))
-                    .frame(width: 32, height: 32)
+    private func widgetLiveInspector(for widget: NotchWidgetType) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Header: Title, Description, Size Selector & Dismiss
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.18))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: widget.icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.accentColor)
+                }
                 
-                Image(systemName: widget.icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(widget.title)
+                            .font(.system(size: 12.5, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text("LIVE PREVIEW")
+                            .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Color.accentColor.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                    Text(widget.subtitle)
+                        .font(.system(size: 9.5))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                // Size Mode Tabs
+                Picker("Preview Size", selection: $previewSizeTab) {
+                    Text("1x Small").tag(WidgetSize.small)
+                    Text("2x Medium").tag(WidgetSize.medium)
+                    Text("Hover").tag(WidgetSize.hover)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 210)
+                
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        previewedWidget = nil
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundColor(.secondary.opacity(0.7))
+                }
+                .buttonStyle(.plain)
             }
             
-            // Text Details
-            VStack(alignment: .leading, spacing: 2) {
-                Text(widget.title)
-                    .font(.system(size: 11.5, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .foregroundColor(.primary)
+            // The Live Rendered Widget Box
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.black.opacity(0.92))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                    )
                 
-                Text(widget.subtitle)
-                    .font(.system(size: 9))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                NotchWidgetHostView(type: widget, size: previewSizeTab)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(height: previewSizeTab == .hover ? 52 : 94)
+            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: previewSizeTab)
+            
+            // Quick Assign to Current Page Slots
+            HStack(spacing: 6) {
+                Text("Assign to Slot:")
+                    .font(.system(size: 9.5, weight: .medium))
                     .foregroundColor(.secondary)
                 
-                HStack(spacing: 3) {
-                    Text("1x")
-                        .font(.system(size: 7.5, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 3.5)
-                        .padding(.vertical, 1)
-                        .background(Color.gray.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                    Text("2x")
-                        .font(.system(size: 7.5, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 3.5)
-                        .padding(.vertical, 1)
-                        .background(Color.gray.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                    Text("4x")
-                        .font(.system(size: 7.5, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 3.5)
-                        .padding(.vertical, 1)
-                        .background(Color.gray.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                }
-                .foregroundColor(.secondary)
-                .padding(.top, 1)
-            }
-            
-            Spacer(minLength: 0)
-            
-            // Drag Grip / Quick Assign Menu
-            Menu {
-                Text("Assign to Current Page:").font(.caption)
-                Divider()
-                Button("Assign to Slot 1") {
-                    assignWidget(widget, toSlot: 1)
-                }
+                Button("Slot 1") { assignWidget(widget, toSlot: 1) }
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .buttonStyle(.bordered)
+                
                 if currentPage.layout == .dualPod || currentPage.layout == .trio || currentPage.layout == .quad {
-                    Button("Assign to Slot 2") {
-                        assignWidget(widget, toSlot: 2)
-                    }
+                    Button("Slot 2") { assignWidget(widget, toSlot: 2) }
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .buttonStyle(.bordered)
                 }
+                
                 if currentPage.layout == .trio || currentPage.layout == .quad {
-                    Button("Assign to Slot 3") {
-                        assignWidget(widget, toSlot: 3)
-                    }
+                    Button("Slot 3") { assignWidget(widget, toSlot: 3) }
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .buttonStyle(.bordered)
                 }
+                
                 if currentPage.layout == .quad {
-                    Button("Assign to Slot 4") {
-                        assignWidget(widget, toSlot: 4)
-                    }
+                    Button("Slot 4") { assignWidget(widget, toSlot: 4) }
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .buttonStyle(.bordered)
                 }
-            } label: {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary.opacity(0.7))
-                    .frame(width: 22, height: 26)
+                
+                Spacer()
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
         }
-        .padding(8)
-        .background(Color(NSColor.controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(10)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.70))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.gray.opacity(0.18), lineWidth: 0.8)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.accentColor.opacity(0.40), lineWidth: 1)
         )
+    }
+    
+    @ViewBuilder
+    private func widgetPaletteCard(for widget: NotchWidgetType) -> some View {
+        let isSelected = previewedWidget == widget
+        Button {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                previewedWidget = widget
+            }
+        } label: {
+            HStack(spacing: 8) {
+                // Icon Square
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(isSelected ? Color.accentColor : Color.accentColor.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: widget.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(isSelected ? .white : .accentColor)
+                }
+                
+                // Text Details
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(widget.title)
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .foregroundColor(.primary)
+                    
+                    Text(widget.subtitle)
+                        .font(.system(size: 8.5))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 3) {
+                        Text("1x")
+                            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 3.5)
+                            .padding(.vertical, 1)
+                            .background(Color.gray.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                        Text("2x")
+                            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 3.5)
+                            .padding(.vertical, 1)
+                            .background(Color.gray.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                        Text("4x")
+                            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 3.5)
+                            .padding(.vertical, 1)
+                            .background(Color.gray.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.top, 1)
+                }
+                
+                Spacer(minLength: 0)
+                
+                // Assign Menu Button
+                Menu {
+                    Text("Assign to Current Page:").font(.caption)
+                    Divider()
+                    Button("Assign to Slot 1") {
+                        assignWidget(widget, toSlot: 1)
+                    }
+                    if currentPage.layout == .dualPod || currentPage.layout == .trio || currentPage.layout == .quad {
+                        Button("Assign to Slot 2") {
+                            assignWidget(widget, toSlot: 2)
+                        }
+                    }
+                    if currentPage.layout == .trio || currentPage.layout == .quad {
+                        Button("Assign to Slot 3") {
+                            assignWidget(widget, toSlot: 3)
+                        }
+                    }
+                    if currentPage.layout == .quad {
+                        Button("Assign to Slot 4") {
+                            assignWidget(widget, toSlot: 4)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(isSelected ? .accentColor : .secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.10) : Color(NSColor.controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(isSelected ? Color.accentColor : Color.gray.opacity(0.18), lineWidth: isSelected ? 1.5 : 0.8)
+            )
+        }
+        .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onDrag {
             NSItemProvider(object: widget.rawValue as NSString)

@@ -227,6 +227,11 @@ public enum NotchWidgetType: String, Codable, CaseIterable, Identifiable {
     case quickTools = "quickTools"
     case scratchpad = "scratchpad"
     case camera = "camera"
+    case clockTimer = "clockTimer"
+    case networkSpeed = "networkSpeed"
+    case appLauncher = "appLauncher"
+    case weather = "weather"
+    case miniCalculator = "miniCalculator"
     
     public var id: String { rawValue }
     
@@ -241,6 +246,11 @@ public enum NotchWidgetType: String, Codable, CaseIterable, Identifiable {
         case .quickTools: return "Quick Tools"
         case .scratchpad: return "Scratchpad"
         case .camera: return "Notch Mirror"
+        case .clockTimer: return "Clock & Focus Timer"
+        case .networkSpeed: return "Network Monitor"
+        case .appLauncher: return "App Launcher"
+        case .weather: return "Weather & Forecast"
+        case .miniCalculator: return "Quick Calculator"
         }
     }
     
@@ -255,6 +265,11 @@ public enum NotchWidgetType: String, Codable, CaseIterable, Identifiable {
         case .quickTools: return "slider.horizontal.3"
         case .scratchpad: return "note.text"
         case .camera: return "camera.fill"
+        case .clockTimer: return "clock.fill"
+        case .networkSpeed: return "network"
+        case .appLauncher: return "square.grid.3x3.fill"
+        case .weather: return "cloud.sun.fill"
+        case .miniCalculator: return "plus.slash.minus"
         }
     }
     
@@ -269,6 +284,11 @@ public enum NotchWidgetType: String, Codable, CaseIterable, Identifiable {
         case .quickTools: return "Sleep guard, mic toggle, color picker & snip"
         case .scratchpad: return "Quick thought notes & daily checklist tasks"
         case .camera: return "Live FaceTime HD vanity mirror & snapshot"
+        case .clockTimer: return "Local digital time, seconds, stopwatch & Pomodoro"
+        case .networkSpeed: return "Live upload/download speed, Wi-Fi SSID & stats"
+        case .appLauncher: return "1-click shortcuts to favorite macOS apps & tools"
+        case .weather: return "Live conditions, temperature, humidity & daily outlook"
+        case .miniCalculator: return "Quick inline math expressions & calculation history"
         }
     }
 }
