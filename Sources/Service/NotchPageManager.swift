@@ -14,7 +14,6 @@ public final class NotchPageManager: ObservableObject {
     
     // Ambang batas swipe 2-jari trackpad (dalam points)
     private let swipeThreshold: CGFloat = 22.0
-    private var accumulatedDeltaY: CGFloat = 0.0
     
     private init() {}
     
@@ -113,8 +112,8 @@ public final class NotchPageManager: ObservableObject {
         nextPage()
     }
     
-    /// Menangani event scrollWheel trackpad untuk swipe 2-jari horizontal & vertikal
-    /// Mengembalikan true jika event dikonsumsi sebagai navigasi halaman atau toggle expand
+    /// Menangani event scrollWheel trackpad untuk swipe 2-jari horizontal
+    /// Mengembalikan true jika event dikonsumsi sebagai navigasi halaman
     public func handleScrollWheel(event: NSEvent) -> Bool {
         // 1. Abaikan momentum scrolling inersia (hanya respons saat jari menempel di trackpad)
         if !event.momentumPhase.isEmpty {
@@ -124,74 +123,50 @@ public final class NotchPageManager: ObservableObject {
         let deltaX = event.scrollingDeltaX
         let deltaY = event.scrollingDeltaY
         
-        // 2. Reset saat fase awal gestur
+        // 2. Pastikan gestur dominan horizontal untuk navigasi halaman notch
+        guard abs(deltaX) > abs(deltaY) * 1.5 else {
+            return false
+        }
+        
+        // 3. Reset saat fase awal gestur
         if event.phase == .began {
             accumulatedDeltaX = 0
-            accumulatedDeltaY = 0
             hasSwitchedInPhase = false
         }
         
-        // 3. Reset saat fase selesai atau dibatalkan
+        // 4. Reset saat fase selesai atau dibatalkan
         if event.phase == .ended || event.phase == .cancelled {
             accumulatedDeltaX = 0
-            accumulatedDeltaY = 0
             hasSwitchedInPhase = false
             return false
         }
         
-        // 4. Normalisasi arah terhadap Natural Scrolling vs Classic Scrolling
+        // 5. Normalisasi arah terhadap Natural Scrolling vs Classic Scrolling
         let effectiveDeltaX = event.isDirectionInvertedFromDevice ? deltaX : -deltaX
-        let effectiveDeltaY = event.isDirectionInvertedFromDevice ? deltaY : -deltaY
+        accumulatedDeltaX += effectiveDeltaX
         
-        // 5. Debounce cooldown (0.35s)
+        // 6. Debounce cooldown (0.35s)
         let now = Date()
         guard now.timeIntervalSince(lastSwitchTime) > 0.35 else {
             return true
         }
         
-        // A. Gestur dominan vertikal (Swipe 2-jari ke bawah untuk buka full screen, ke atas untuk collapse)
-        if abs(deltaY) > abs(deltaX) * 1.15 {
-            accumulatedDeltaY += effectiveDeltaY
-            if !hasSwitchedInPhase {
-                if accumulatedDeltaY > swipeThreshold {
-                    // Tarik 2-jari ke bawah -> Buka full screen / mode active
-                    NotificationCenter.default.post(name: .expandNotch, object: nil)
-                    HapticService.shared.pageSwitch()
-                    lastSwitchTime = now
-                    hasSwitchedInPhase = true
-                    accumulatedDeltaY = 0
-                    return true
-                } else if accumulatedDeltaY < -swipeThreshold {
-                    // Dorong 2-jari ke atas -> Tutup / collapse
-                    NotificationCenter.default.post(name: .collapseNotch, object: nil)
-                    HapticService.shared.click()
-                    lastSwitchTime = now
-                    hasSwitchedInPhase = true
-                    accumulatedDeltaY = 0
-                    return true
-                }
+        if !hasSwitchedInPhase {
+            // Jari digeser dari kanan ke kiri (ke halaman berikutnya)
+            if accumulatedDeltaX < -swipeThreshold {
+                nextPage()
+                lastSwitchTime = now
+                hasSwitchedInPhase = true
+                accumulatedDeltaX = 0
+                return true
             }
-        }
-        // B. Gestur dominan horizontal (Swipe 2-jari kiri / kanan untuk ganti halaman)
-        else if abs(deltaX) > abs(deltaY) * 1.15 {
-            accumulatedDeltaX += effectiveDeltaX
-            if !hasSwitchedInPhase {
-                // Jari digeser dari kanan ke kiri (ke halaman berikutnya)
-                if accumulatedDeltaX < -swipeThreshold {
-                    nextPage()
-                    lastSwitchTime = now
-                    hasSwitchedInPhase = true
-                    accumulatedDeltaX = 0
-                    return true
-                }
-                // Jari digeser dari kiri ke kanan (ke halaman sebelumnya)
-                else if accumulatedDeltaX > swipeThreshold {
-                    previousPage()
-                    lastSwitchTime = now
-                    hasSwitchedInPhase = true
-                    accumulatedDeltaX = 0
-                    return true
-                }
+            // Jari digeser dari kiri ke kanan (ke halaman sebelumnya)
+            else if accumulatedDeltaX > swipeThreshold {
+                previousPage()
+                lastSwitchTime = now
+                hasSwitchedInPhase = true
+                accumulatedDeltaX = 0
+                return true
             }
         }
         
